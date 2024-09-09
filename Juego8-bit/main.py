@@ -4,7 +4,7 @@ import random
 
 # initialize the constructor
 pygame.init()
-res = (720, 720)
+res = (1080, 720)
 
 # randomly assigns a value to variables ranging from lower limit to upper
 c1 = random.randint(125, 255)
