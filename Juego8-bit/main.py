@@ -48,7 +48,7 @@ enemy_size = 50
 
 # defining a font
 smallfont = pygame.font.SysFont('Monospace', 25)
-smallfont_title = pygame.font.SysFont('Helvetica', 70)
+smallfont_title = pygame.font.SysFont('Bauhaus 93', 70)
 
 # texts to be rendered on screen
 text = smallfont.render('INICIO', True, white)
