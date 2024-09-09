@@ -71,7 +71,6 @@ rgb = random.choice(color_list)
 e_p = [width, random.randint(50, height - 50)]
 e1_p = [random.randint(width, width + 100), random.randint(50, height - 100)]
 
-
 # function for game_over
 def game_over():
     while True:
@@ -83,12 +82,15 @@ def game_over():
 
             if ev.type == pygame.MOUSEBUTTONDOWN:
                 mouse1 = pygame.mouse.get_pos()
-                if 100 < mouse1[0] < 140 and height - 100 < mouse1[1] < height - 80:
+
+                # Detect if "SALIR" button is clicked
+                if 110 < mouse1[0] < 210 and height - 100 < mouse1[1] < height - 60:
                     pygame.quit()
                     sys.exit()
 
-                if width - 180 < mouse1[0] < width - 100 and height - 100 < mouse1[1] < height - 80:
-                    # calling function game
+                # Detect if "EMPEZAR DE NUEVO" button is clicked
+                if width - 160 < mouse1[0] < width - 80 and height - 100 < mouse1[1] < height - 80:
+                    # Calling the game function to restart
                     game(lead_y, lead_x, speed, count)
 
         # fills the screen with specified colour
@@ -101,13 +103,13 @@ def game_over():
         mouse1 = pygame.mouse.get_pos()
 
         # exit
-        if 100 < mouse1[0] < 200 and height - 100 < mouse1[1] < height - 60:
+        if 110 < mouse1[0] < 210 and height - 100 < mouse1[1] < height - 60:
             pygame.draw.rect(screen, startl, [110, height - 100, 100, 40])
         else:
             pygame.draw.rect(screen, startd, [110, height - 100, 100, 40])
 
         # restart
-        if width - 160 < mouse1[0] < width - 100 and height - 100 < mouse1[1] < height - 80:
+        if width - 160 < mouse1[0] < width - 80 and height - 100 < mouse1[1] < height - 80:
             pygame.draw.rect(screen, startl, [width - 160, height - 100, 80, 20])
         else:
             pygame.draw.rect(screen, startd, [width - 160, height - 100, 80, 20])
@@ -118,7 +120,6 @@ def game_over():
 
         # updates frames of the game
         pygame.display.update()
-
 
 # function for body of the game
 def game(lead_y, lead_x, speed, count):
