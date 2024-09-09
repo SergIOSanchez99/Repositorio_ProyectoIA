@@ -47,7 +47,7 @@ height1 = 40
 enemy_size = 50
 
 # defining a font
-smallfont = pygame.font.SysFont('Monospace', 25)
+smallfont = pygame.font.SysFont('Consolas', 25)
 smallfont_title = pygame.font.SysFont('Bauhaus 93', 70)
 
 # texts to be rendered on screen
@@ -95,8 +95,8 @@ def game_over():
 
         # fills the screen with specified colour
         screen.fill((65, 25, 64))
-        smallfont = pygame.font.SysFont('Monospace', 40)
-        smallfont1 = pygame.font.SysFont('Monospace', 20)
+        smallfont = pygame.font.SysFont('Consolas', 40)
+        smallfont1 = pygame.font.SysFont('Consolas', 20)
         game_over_text = smallfont.render('JUEGO TERMINADO', True, white)
         game_exit = smallfont1.render('SALIR', True, white)
         restart = smallfont1.render('EMPEZAR DE NUEVO', True, white)
