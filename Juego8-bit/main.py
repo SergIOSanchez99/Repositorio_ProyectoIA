@@ -44,9 +44,9 @@ def calcular_puntaje(dados):
     return sum(dados)
 
 def main():
-    print("¡Bienvenido al juego de dados!")
+    print("¡Bienvenido al juego de dados TRIKAS!")
     
-    jugador_comienza = input("¿Quieres empezar tú? (s/n): ").strip().lower() == 's'
+    jugador_comienza = input("¿Quieres empezar tú? SI (s) o NO (n) : ").strip().lower() == 's'
     jugador_nombre = "Usuario"
     maquina_nombre = "Máquina"
 
