@@ -32,22 +32,30 @@ def is_valid_move(board, row, col, piece):
     
     return True
 
-# Función para verificar si hay un ganador
+# Función para verificar si hay un ganador en un cuadrante
+def check_quadrant_winner(board, start_row, start_col):
+    pieces = set()
+    for i in range(2):
+        for j in range(2):
+            piece = board[start_row + i][start_col + j]
+            if piece == '':
+                return False
+            pieces.add(piece.lower())
+    return len(pieces) == 4
+
+# Función para verificar si hay un ganador general
 def check_winner(board):
-    # Verificar filas, columnas y cuadrantes
+    # Verificar filas y columnas
     for i in range(4):
         if len(set(board[i])) == 4 and '' not in board[i]:
             return True
         if len(set([board[j][i] for j in range(4)])) == 4 and '' not in [board[j][i] for j in range(4)]:
             return True
-    
-    for row in range(0, 4, 2):
-        for col in range(0, 4, 2):
-            quadrants = set()
-            for i in range(2):
-                for j in range(2):
-                    quadrants.add(board[row + i][col + j])
-            if len(quadrants) == 4 and '' not in quadrants:
+
+    # Verificar cada cuadrante
+    for start_row in range(0, 4, 2):
+        for start_col in range(0, 4, 2):
+            if check_quadrant_winner(board, start_row, start_col):
                 return True
     
     return False
