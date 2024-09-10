@@ -1,117 +1,100 @@
-import pygame
-import sys
-import math
+import random
 
-# Inicializar Pygame
-pygame.init()
+# Inicializar el tablero vacío (4x4)
+board = [['' for _ in range(4)] for _ in range(4)]
 
-# Configuración de la pantalla
-WIDTH, HEIGHT = 600, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Quantik")
+# Piezas disponibles para el jugador y la máquina
+user_pieces = ['A', 'B', 'C', 'D']
+machine_pieces = ['a', 'b', 'c', 'd']
 
-# Colores
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
+# Función para mostrar el tablero
+def print_board(board):
+    for row in board:
+        print(' '.join([cell if cell else '.' for cell in row]))
 
-# Tamaño del tablero y casillas
-ROWS, COLS = 4, 4
-SQUARE_SIZE = WIDTH // COLS
-
-# Inicializar el tablero
-board = [[None for _ in range(COLS)] for _ in range(ROWS)]
-
-# Definir las piezas (formas)
-PIECES = ['CIRCLE', 'SQUARE', 'TRIANGLE', 'RHOMBUS']
-PIECE_COLORS = {'CIRCLE': RED, 'SQUARE': GREEN, 'TRIANGLE': BLUE, 'RHOMBUS': YELLOW}
-
-def draw_board():
-    screen.fill(WHITE)
-    for row in range(ROWS):
-        for col in range(COLS):
-            pygame.draw.rect(screen, BLACK, (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE), 1)
-            if board[row][col]:
-                draw_piece(row, col, board[row][col])
-    pygame.display.flip()
-
-def draw_piece(row, col, piece):
-    x = col * SQUARE_SIZE + SQUARE_SIZE // 2
-    y = row * SQUARE_SIZE + SQUARE_SIZE // 2
-    size = SQUARE_SIZE // 3
-    color = PIECE_COLORS[piece]
+# Función para verificar si la colocación es válida
+def is_valid_move(board, row, col, piece):
+    # Verifica si el lugar está vacío
+    if board[row][col] != '':
+        return False
     
-    if piece == 'CIRCLE':
-        pygame.draw.circle(screen, color, (x, y), size)
-    elif piece == 'SQUARE':
-        pygame.draw.rect(screen, color, (x - size, y - size, size * 2, size * 2))
-    elif piece == 'TRIANGLE':
-        points = [
-            (x, y - size),
-            (x - size, y + size),
-            (x + size, y + size)
-        ]
-        pygame.draw.polygon(screen, color, points)
-    elif piece == 'RHOMBUS':
-        points = [
-            (x, y - size),
-            (x - size, y),
-            (x, y + size),
-            (x + size, y)
-        ]
-        pygame.draw.polygon(screen, color, points)
+    # Verifica si la pieza ya está en la misma fila, columna o cuadrante
+    for i in range(4):
+        if board[row][i].lower() == piece.lower() or board[i][col].lower() == piece.lower():
+            return False
+    
+    # Verificar cuadrante
+    start_row, start_col = 2 * (row // 2), 2 * (col // 2)
+    for i in range(2):
+        for j in range(2):
+            if board[start_row + i][start_col + j].lower() == piece.lower():
+                return False
+    
+    return True
 
-def check_winner():
-    for row in range(ROWS):
-        for col in range(COLS):
-            piece = board[row][col]
-            if piece:
-                if check_line(row, col, piece):
-                    return True
-    return False
-
-def check_line(row, col, piece):
-    # Check row
-    if all(board[row][c] == piece for c in range(COLS)):
-        return True
-    # Check column
-    if all(board[r][col] == piece for r in range(ROWS)):
-        return True
-    # Check quadrants
-    if row < 2 and col < 2:
-        if (all(board[r][c] == piece for r in range(row, row + 2) for c in range(col, col + 2))):
+# Función para verificar si hay un ganador
+def check_winner(board):
+    # Verificar filas, columnas y cuadrantes
+    for i in range(4):
+        if len(set(board[i])) == 4 and '' not in board[i]:
             return True
+        if len(set([board[j][i] for j in range(4)])) == 4 and '' not in [board[j][i] for j in range(4)]:
+            return True
+    
+    for row in range(0, 4, 2):
+        for col in range(0, 4, 2):
+            quadrants = set()
+            for i in range(2):
+                for j in range(2):
+                    quadrants.add(board[row + i][col + j])
+            if len(quadrants) == 4 and '' not in quadrants:
+                return True
+    
     return False
 
-def main():
-    clock = pygame.time.Clock()
-    running = True
-    player_turn = 'CIRCLE'
-    
-    while running:
-        draw_board()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
-                col = x // SQUARE_SIZE
-                row = y // SQUARE_SIZE
-                
-                if board[row][col] is None:
-                    board[row][col] = player_turn
-                    if check_winner():
-                        print(f"Player with {player_turn} wins!")
-                        pygame.quit()
-                        sys.exit()
-                    player_turn = 'SQUARE' if player_turn == 'CIRCLE' else 'TRIANGLE' if player_turn == 'SQUARE' else 'RHOMBUS' if player_turn == 'TRIANGLE' else 'CIRCLE'
+# Función para turno del jugador
+def player_turn():
+    while True:
+        print_board(board)
+        row = int(input("Ingresa la fila (0-3): "))
+        col = int(input("Ingresa la columna (0-3): "))
+        piece = input("Elige una pieza (A, B, C, D): ").upper()
         
-        clock.tick(30)
+        if piece in user_pieces and is_valid_move(board, row, col, piece):
+            board[row][col] = piece
+            user_pieces.remove(piece)
+            break
+        else:
+            print("Movimiento no válido, intenta nuevamente.")
 
-if __name__ == "__main__":
-    main()
+# Función para turno de la máquina
+def machine_turn():
+    print("Turno de la máquina...")
+    while True:
+        row = random.randint(0, 3)
+        col = random.randint(0, 3)
+        piece = random.choice(machine_pieces)
+        
+        if is_valid_move(board, row, col, piece):
+            board[row][col] = piece
+            machine_pieces.remove(piece)
+            break
+
+# Juego principal
+def play_game():
+    while True:
+        player_turn()
+        if check_winner(board):
+            print("¡Felicidades! ¡Has ganado!")
+            break
+        
+        machine_turn()
+        if check_winner(board):
+            print("La máquina ha ganado.")
+            break
+        
+        if not user_pieces and not machine_pieces:
+            print("Empate. No quedan más movimientos.")
+            break
+
+play_game()
