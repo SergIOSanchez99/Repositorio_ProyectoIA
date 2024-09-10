@@ -1,97 +1,117 @@
 import pygame
-import random
 import sys
+import math
 
-# Inicialización de Pygame
+# Inicializar Pygame
 pygame.init()
 
 # Configuración de la pantalla
-ANCHO, ALTO = 800, 600
-pantalla = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption('Juego de Dados: TRIKAZ')
+WIDTH, HEIGHT = 600, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Quantik")
 
 # Colores
-BLANCO = (255, 255, 255)
-NEGRO = (0, 0, 0)
-ROJO = (255, 0, 0)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
 
-# Fuente
-fuente = pygame.font.Font(None, 36)
+# Tamaño del tablero y casillas
+ROWS, COLS = 4, 4
+SQUARE_SIZE = WIDTH // COLS
 
-# Tamaño de los botones
-BOTON_ANCHO, BOTON_ALTO = 150, 50
+# Inicializar el tablero
+board = [[None for _ in range(COLS)] for _ in range(ROWS)]
 
-def tirar_dado():
-    return random.randint(1, 6)
+# Definir las piezas (formas)
+PIECES = ['CIRCLE', 'SQUARE', 'TRIANGLE', 'RHOMBUS']
+PIECE_COLORS = {'CIRCLE': RED, 'SQUARE': GREEN, 'TRIANGLE': BLUE, 'RHOMBUS': YELLOW}
 
-def dibujar_dados(dados):
-    for i, dado in enumerate(dados):
-        pygame.draw.rect(pantalla, BLANCO, (100 + i * 150, 200, 100, 100))
-        texto = fuente.render(f'{dado}', True, NEGRO)
-        pantalla.blit(texto, (130 + i * 150, 240))
+def draw_board():
+    screen.fill(WHITE)
+    for row in range(ROWS):
+        for col in range(COLS):
+            pygame.draw.rect(screen, BLACK, (col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE), 1)
+            if board[row][col]:
+                draw_piece(row, col, board[row][col])
+    pygame.display.flip()
 
-def mostrar_texto(texto, x, y):
-    texto_surf = fuente.render(texto, True, NEGRO)
-    pantalla.blit(texto_surf, (x, y))
+def draw_piece(row, col, piece):
+    x = col * SQUARE_SIZE + SQUARE_SIZE // 2
+    y = row * SQUARE_SIZE + SQUARE_SIZE // 2
+    size = SQUARE_SIZE // 3
+    color = PIECE_COLORS[piece]
+    
+    if piece == 'CIRCLE':
+        pygame.draw.circle(screen, color, (x, y), size)
+    elif piece == 'SQUARE':
+        pygame.draw.rect(screen, color, (x - size, y - size, size * 2, size * 2))
+    elif piece == 'TRIANGLE':
+        points = [
+            (x, y - size),
+            (x - size, y + size),
+            (x + size, y + size)
+        ]
+        pygame.draw.polygon(screen, color, points)
+    elif piece == 'RHOMBUS':
+        points = [
+            (x, y - size),
+            (x - size, y),
+            (x, y + size),
+            (x + size, y)
+        ]
+        pygame.draw.polygon(screen, color, points)
 
-def dibujar_boton(texto, x, y):
-    pygame.draw.rect(pantalla, ROJO, (x, y, BOTON_ANCHO, BOTON_ALTO))
-    texto_surf = fuente.render(texto, True, BLANCO)
-    pantalla.blit(texto_surf, (x + 10, y + 10))
+def check_winner():
+    for row in range(ROWS):
+        for col in range(COLS):
+            piece = board[row][col]
+            if piece:
+                if check_line(row, col, piece):
+                    return True
+    return False
 
-def boton_presionado(pos, x, y, ancho, alto):
-    return x <= pos[0] <= x + ancho and y <= pos[1] <= y + alto
-
-def turno_jugador():
-    dados = [tirar_dado() for _ in range(3)]
-    return dados
+def check_line(row, col, piece):
+    # Check row
+    if all(board[row][c] == piece for c in range(COLS)):
+        return True
+    # Check column
+    if all(board[r][col] == piece for r in range(ROWS)):
+        return True
+    # Check quadrants
+    if row < 2 and col < 2:
+        if (all(board[r][c] == piece for r in range(row, row + 2) for c in range(col, col + 2))):
+            return True
+    return False
 
 def main():
-    reloj = pygame.time.Clock()
-    corriendo = True
-    turno = True  # True para Usuario, False para Máquina
-    dados_usuario = []
-    dados_maquina = []
-    puntaje_usuario = 0
-    puntaje_maquina = 0
-    lanzar = False
+    clock = pygame.time.Clock()
+    running = True
+    player_turn = 'CIRCLE'
     
-    while corriendo:
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
+    while running:
+        draw_board()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             
-            if evento.type == pygame.MOUSEBUTTONDOWN:
-                if turno and boton_presionado(evento.pos, 325, 500, BOTON_ANCHO, BOTON_ALTO):
-                    dados_usuario = turno_jugador()
-                    puntaje_usuario = sum(dados_usuario)
-                    lanzar = True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                col = x // SQUARE_SIZE
+                row = y // SQUARE_SIZE
+                
+                if board[row][col] is None:
+                    board[row][col] = player_turn
+                    if check_winner():
+                        print(f"Player with {player_turn} wins!")
+                        pygame.quit()
+                        sys.exit()
+                    player_turn = 'SQUARE' if player_turn == 'CIRCLE' else 'TRIANGLE' if player_turn == 'SQUARE' else 'RHOMBUS' if player_turn == 'TRIANGLE' else 'CIRCLE'
         
-        pantalla.fill(NEGRO)
-        
-        if turno:
-            mostrar_texto('Turno del Usuario', 50, 50)
-            dibujar_boton('Lanzar Dados', 325, 500)
-            if lanzar:
-                dibujar_dados(dados_usuario)
-                mostrar_texto(f'Dados del Usuario: {dados_usuario}', 50, 150)
-                mostrar_texto(f'Puntaje: {puntaje_usuario}', 50, 200)
-                lanzar = False
-        else:
-            mostrar_texto('Turno de la Máquina', 50, 50)
-            dados_maquina = turno_jugador()
-            puntaje_maquina = sum(dados_maquina)
-            dibujar_dados(dados_maquina)
-            mostrar_texto(f'Dados de la Máquina: {dados_maquina}', 50, 150)
-            mostrar_texto(f'Puntaje: {puntaje_maquina}', 50, 200)
-        
-        pygame.display.flip()
-        reloj.tick(60)
-
-        if turno:
-            pygame.time.wait(2000)  # Esperar 2 segundos después del turno del usuario
-        turno = not turno  # Cambiar de turno
+        clock.tick(30)
 
 if __name__ == "__main__":
     main()
