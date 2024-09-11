@@ -15,6 +15,7 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
+HIGHLIGHT_COLOR = (0, 255, 0)
 
 # Piezas como formas geométricas
 SHAPES = ['CIRCLE', 'SQUARE', 'TRIANGLE', 'DIAMOND']
@@ -50,12 +51,44 @@ pygame.draw.polygon(diamond_img, USER_COLOR, [
 # Fuente para el texto
 font = pygame.font.Font(None, 36)
 
+# Función para mostrar la pantalla de inicio
+def show_start_screen():
+    screen.fill(WHITE)
+    start_button = pygame.Rect(100, 150, 300, 80)
+    exit_button = pygame.Rect(100, 300, 300, 80)
+    
+    pygame.draw.rect(screen, BLUE, start_button)
+    pygame.draw.rect(screen, RED, exit_button)
+    
+    start_text = font.render("Empezar", True, WHITE)
+    exit_text = font.render("Salir", True, WHITE)
+    
+    screen.blit(start_text, (start_button.x + 75, start_button.y + 20))
+    screen.blit(exit_text, (exit_button.x + 100, exit_button.y + 20))
+    
+    pygame.display.flip()
+    
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                if start_button.collidepoint(x, y):
+                    return True
+                elif exit_button.collidepoint(x, y):
+                    pygame.quit()
+                    quit()
+
 # Función para dibujar el tablero
-def draw_board(screen, board, message):
+def draw_board(screen, board, message, highlight=None):
     screen.fill(WHITE)
     for row in range(4):
         for col in range(4):
             rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+            if highlight == (row, col):
+                pygame.draw.rect(screen, HIGHLIGHT_COLOR, rect)  # Resaltar la celda seleccionada
             pygame.draw.rect(screen, BLACK, rect, 1)
             piece = board[row][col]
             if piece:
@@ -128,6 +161,20 @@ def check_winner(board):
 # Función para el turno del jugador
 def player_turn():
     selected_piece = None
+    selected_square = None
+    while selected_square is None:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                if y < WINDOW_SIZE:
+                    col, row = x // CELL_SIZE, y // CELL_SIZE
+                    if board[row][col] == '':
+                        selected_square = (row, col)
+        draw_board(screen, board, "Selecciona una casilla.", highlight=selected_square)
+    
     while selected_piece is None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -144,14 +191,11 @@ def player_turn():
                         selected_piece = 'TRIANGLE'
                     elif 280 <= x < 280 + BUTTON_SIZE:
                         selected_piece = 'DIAMOND'
-                else:
-                    col, row = x // CELL_SIZE, y // CELL_SIZE
-                    if selected_piece and is_valid_move(board, row, col, selected_piece):
-                        board[row][col] = selected_piece
-                        SHAPES.remove(selected_piece)
-                        return
-
-        draw_board(screen, board, "Tu turno. Elige una figura y haz tu movimiento.")
+                if selected_piece and is_valid_move(board, selected_square[0], selected_square[1], selected_piece):
+                    board[selected_square[0]][selected_square[1]] = selected_piece
+                    SHAPES.remove(selected_piece)
+                    return
+        draw_board(screen, board, "Selecciona una figura para colocar.")
 
 # Función para el turno de la máquina
 def machine_turn():
@@ -184,7 +228,8 @@ def play_game():
             draw_board(screen, board, "Empate. No quedan más movimientos.")
             running = False
 
-# Iniciar el juego
-play_game()
+# Pantalla de inicio
+if show_start_screen():
+    play_game()
 
 pygame.quit()
