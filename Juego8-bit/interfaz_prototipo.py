@@ -1,235 +1,161 @@
 import pygame
 import random
 
-# Inicializar Pygame
+# Initialize pygame
 pygame.init()
 
-# Dimensiones de la ventana
-WINDOW_SIZE = 500
-CELL_SIZE = WINDOW_SIZE // 4
-BUTTON_SIZE = 80
-INFO_HEIGHT = 40
-
-# Colores
+# Constants
+SCREEN_WIDTH, SCREEN_HEIGHT = 600, 600
+GRID_SIZE = 4
+CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-BLUE = (0, 0, 255)
 RED = (255, 0, 0)
-HIGHLIGHT_COLOR = (0, 255, 0)
+BLUE = (0, 0, 255)
 
-# Piezas como formas geométricas
-SHAPES = ['CIRCLE', 'SQUARE', 'TRIANGLE', 'DIAMOND']
-USER_COLOR = BLUE
-MACHINE_COLOR = RED
+# Shapes
+SHAPES = ['sphere', 'cube', 'cylinder', 'cone']
 
-# Inicializar el tablero vacío (4x4)
-board = [['' for _ in range(4)] for _ in range(4)]
+# Players
+HUMAN = 1
+AI = 2
 
-# Crear la ventana del juego
-screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE + BUTTON_SIZE + INFO_HEIGHT))
-pygame.display.set_caption("Quantik Game")
+# Setup the display
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption('Quantik')
 
-# Cargar imágenes de las figuras
-circle_img = pygame.Surface((BUTTON_SIZE, BUTTON_SIZE), pygame.SRCALPHA)
-pygame.draw.circle(circle_img, USER_COLOR, (BUTTON_SIZE // 2, BUTTON_SIZE // 2), BUTTON_SIZE // 2 - 10)
-square_img = pygame.Surface((BUTTON_SIZE, BUTTON_SIZE), pygame.SRCALPHA)
-pygame.draw.rect(square_img, USER_COLOR, (10, 10, BUTTON_SIZE - 20, BUTTON_SIZE - 20))
-triangle_img = pygame.Surface((BUTTON_SIZE, BUTTON_SIZE), pygame.SRCALPHA)
-pygame.draw.polygon(triangle_img, USER_COLOR, [
-    (BUTTON_SIZE // 2, 10),
-    (10, BUTTON_SIZE - 10),
-    (BUTTON_SIZE - 10, BUTTON_SIZE - 10)
-])
-diamond_img = pygame.Surface((BUTTON_SIZE, BUTTON_SIZE), pygame.SRCALPHA)
-pygame.draw.polygon(diamond_img, USER_COLOR, [
-    (BUTTON_SIZE // 2, 10),
-    (10, BUTTON_SIZE // 2),
-    (BUTTON_SIZE // 2, BUTTON_SIZE - 10),
-    (BUTTON_SIZE - 10, BUTTON_SIZE // 2)
-])
+# Board Data Structure
+board = [[None for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
 
-# Fuente para el texto
-font = pygame.font.Font(None, 36)
+# Pieces for each player
+pieces = {
+    HUMAN: {'sphere': 2, 'cube': 2, 'cylinder': 2, 'cone': 2},
+    AI: {'sphere': 2, 'cube': 2, 'cylinder': 2, 'cone': 2}
+}
 
-# Función para mostrar la pantalla de inicio
-def show_start_screen():
-    screen.fill(WHITE)
-    start_button = pygame.Rect(100, 150, 300, 80)
-    exit_button = pygame.Rect(100, 300, 300, 80)
-    
-    pygame.draw.rect(screen, BLUE, start_button)
-    pygame.draw.rect(screen, RED, exit_button)
-    
-    start_text = font.render("Empezar", True, WHITE)
-    exit_text = font.render("Salir", True, WHITE)
-    
-    screen.blit(start_text, (start_button.x + 75, start_button.y + 20))
-    screen.blit(exit_text, (exit_button.x + 100, exit_button.y + 20))
-    
-    pygame.display.flip()
-    
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = event.pos
-                if start_button.collidepoint(x, y):
-                    return True
-                elif exit_button.collidepoint(x, y):
-                    pygame.quit()
-                    quit()
+# Draw the grid
+def draw_grid():
+    for x in range(1, GRID_SIZE):
+        pygame.draw.line(screen, BLACK, (x * CELL_SIZE, 0), (x * CELL_SIZE, SCREEN_HEIGHT), 2)
+        pygame.draw.line(screen, BLACK, (0, x * CELL_SIZE), (SCREEN_WIDTH, x * CELL_SIZE), 2)
 
-# Función para dibujar el tablero
-def draw_board(screen, board, message, highlight=None):
-    screen.fill(WHITE)
-    for row in range(4):
-        for col in range(4):
-            rect = pygame.Rect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-            if highlight == (row, col):
-                pygame.draw.rect(screen, HIGHLIGHT_COLOR, rect)  # Resaltar la celda seleccionada
-            pygame.draw.rect(screen, BLACK, rect, 1)
-            piece = board[row][col]
-            if piece:
-                color = MACHINE_COLOR if piece.islower() else USER_COLOR
-                draw_shape(screen, piece.upper(), color, (col * CELL_SIZE, row * CELL_SIZE))
-    
-    # Dibujar mensaje
-    message_surf = font.render(message, True, BLACK)
-    screen.blit(message_surf, (10, WINDOW_SIZE + 10))
-    
-    # Dibujar botones de selección de figuras
-    screen.blit(circle_img, (10, WINDOW_SIZE + INFO_HEIGHT))
-    screen.blit(square_img, (100, WINDOW_SIZE + INFO_HEIGHT))
-    screen.blit(triangle_img, (190, WINDOW_SIZE + INFO_HEIGHT))
-    screen.blit(diamond_img, (280, WINDOW_SIZE + INFO_HEIGHT))
-    
-    pygame.display.flip()
+# Draw pieces on the board
+def draw_pieces():
+    for row in range(GRID_SIZE):
+        for col in range(GRID_SIZE):
+            if board[row][col]:
+                player, shape = board[row][col]
+                color = RED if player == HUMAN else BLUE
+                if shape == 'sphere':
+                    pygame.draw.circle(screen, color, (col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 2), CELL_SIZE // 4)
+                elif shape == 'cube':
+                    pygame.draw.rect(screen, color, (col * CELL_SIZE + CELL_SIZE // 4, row * CELL_SIZE + CELL_SIZE // 4, CELL_SIZE // 2, CELL_SIZE // 2))
+                elif shape == 'cylinder':
+                    pygame.draw.rect(screen, color, (col * CELL_SIZE + CELL_SIZE // 3, row * CELL_SIZE + CELL_SIZE // 4, CELL_SIZE // 4, CELL_SIZE // 2))
+                elif shape == 'cone':
+                    pygame.draw.polygon(screen, color, [(col * CELL_SIZE + CELL_SIZE // 2, row * CELL_SIZE + CELL_SIZE // 4),
+                                                       (col * CELL_SIZE + CELL_SIZE // 4, row * CELL_SIZE + CELL_SIZE // 2),
+                                                       (col * CELL_SIZE + 3 * CELL_SIZE // 4, row * CELL_SIZE + CELL_SIZE // 2)])
 
-# Función para dibujar una figura en el tablero
-def draw_shape(screen, shape, color, pos):
-    if shape == 'CIRCLE':
-        pygame.draw.circle(screen, color, (pos[0] + CELL_SIZE // 2, pos[1] + CELL_SIZE // 2), CELL_SIZE // 2 - 10)
-    elif shape == 'SQUARE':
-        pygame.draw.rect(screen, color, (pos[0] + 10, pos[1] + 10, CELL_SIZE - 20, CELL_SIZE - 20))
-    elif shape == 'TRIANGLE':
-        pygame.draw.polygon(screen, color, [
-            (pos[0] + CELL_SIZE // 2, pos[1] + 10),
-            (pos[0] + 10, pos[1] + CELL_SIZE - 10),
-            (pos[0] + CELL_SIZE - 10, pos[1] + CELL_SIZE - 10)
-        ])
-    elif shape == 'DIAMOND':
-        pygame.draw.polygon(screen, color, [
-            (pos[0] + CELL_SIZE // 2, pos[1] + 10),
-            (pos[0] + 10, pos[1] + CELL_SIZE // 2),
-            (pos[0] + CELL_SIZE // 2, pos[1] + CELL_SIZE - 10),
-            (pos[0] + CELL_SIZE - 10, pos[1] + CELL_SIZE // 2)
-        ])
-
-# Función para verificar si la colocación es válida
-def is_valid_move(board, row, col, piece):
-    if board[row][col] != '':
-        return False
-    for i in range(4):
-        if board[row][i].lower() == piece.lower() or board[i][col].lower() == piece.lower():
+# Check if a shape is already placed in the row, column, or 2x2 region
+def is_valid_move(row, col, shape, player):
+    # Check row and column
+    for i in range(GRID_SIZE):
+        if board[row][i] and board[row][i][1] == shape:
             return False
-    start_row, start_col = 2 * (row // 2), 2 * (col // 2)
-    for i in range(2):
-        for j in range(2):
-            if board[start_row + i][start_col + j].lower() == piece.lower():
+        if board[i][col] and board[i][col][1] == shape:
+            return False
+
+    # Check 2x2 region
+    region_row, region_col = row // 2 * 2, col // 2 * 2
+    for i in range(region_row, region_row + 2):
+        for j in range(region_col, region_col + 2):
+            if board[i][j] and board[i][j][1] == shape:
                 return False
+
     return True
 
-# Función para verificar si hay un ganador
-def check_winner(board):
-    for i in range(4):
-        if len(set(board[i])) == 4 and '' not in board[i]:
+# Place a piece on the board
+def place_piece(row, col, shape, player):
+    board[row][col] = (player, shape)
+    pieces[player][shape] -= 1
+
+# AI move (basic random valid move)
+def ai_move():
+    valid_moves = []
+    for row in range(GRID_SIZE):
+        for col in range(GRID_SIZE):
+            if not board[row][col]:  # empty space
+                for shape in SHAPES:
+                    if pieces[AI][shape] > 0 and is_valid_move(row, col, shape, AI):
+                        valid_moves.append((row, col, shape))
+
+    if valid_moves:
+        move = random.choice(valid_moves)
+        place_piece(*move, AI)
+
+# Check for a winning move (4 different shapes in a row, column, or region)
+def check_win(player):
+    # Check rows and columns
+    for i in range(GRID_SIZE):
+        if len(set([board[i][j][1] for j in range(GRID_SIZE) if board[i][j] and board[i][j][0] == player])) == 4:
             return True
-        if len(set([board[j][i] for j in range(4)])) == 4 and '' not in [board[j][i] for j in range(4)]:
+        if len(set([board[j][i][1] for j in range(GRID_SIZE) if board[j][i] and board[j][i][0] == player])) == 4:
             return True
-    for row in range(0, 4, 2):
-        for col in range(0, 4, 2):
-            quadrants = set()
-            for i in range(2):
-                for j in range(2):
-                    quadrants.add(board[row + i][col + j])
-            if len(quadrants) == 4 and '' not in quadrants:
+
+    # Check 2x2 regions
+    for row in range(0, GRID_SIZE, 2):
+        for col in range(0, GRID_SIZE, 2):
+            shapes = set()
+            for i in range(row, row + 2):
+                for j in range(col, col + 2):
+                    if board[i][j] and board[i][j][0] == player:
+                        shapes.add(board[i][j][1])
+            if len(shapes) == 4:
                 return True
+
     return False
 
-# Función para el turno del jugador
-def player_turn():
-    selected_piece = None
-    selected_square = None
-    while selected_square is None:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = event.pos
-                if y < WINDOW_SIZE:
-                    col, row = x // CELL_SIZE, y // CELL_SIZE
-                    if board[row][col] == '':
-                        selected_square = (row, col)
-        draw_board(screen, board, "Selecciona una casilla.", highlight=selected_square)
-    
-    while selected_piece is None:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = event.pos
-                if y > WINDOW_SIZE + INFO_HEIGHT:
-                    if 10 <= x < 10 + BUTTON_SIZE:
-                        selected_piece = 'CIRCLE'
-                    elif 100 <= x < 100 + BUTTON_SIZE:
-                        selected_piece = 'SQUARE'
-                    elif 190 <= x < 190 + BUTTON_SIZE:
-                        selected_piece = 'TRIANGLE'
-                    elif 280 <= x < 280 + BUTTON_SIZE:
-                        selected_piece = 'DIAMOND'
-                if selected_piece and is_valid_move(board, selected_square[0], selected_square[1], selected_piece):
-                    board[selected_square[0]][selected_square[1]] = selected_piece
-                    SHAPES.remove(selected_piece)
-                    return
-        draw_board(screen, board, "Selecciona una figura para colocar.")
-
-# Función para el turno de la máquina
-def machine_turn():
-    selected_piece = random.choice(SHAPES)
-    pos = None
-    while pos is None:
-        row = random.randint(0, 3)
-        col = random.randint(0, 3)
-        if is_valid_move(board, row, col, selected_piece):
-            board[row][col] = selected_piece.lower()
-            SHAPES.remove(selected_piece)
-            pos = (row, col)
-    draw_board(screen, board, "Turno del oponente...")
-    pygame.time.delay(1000)  # Añadir un pequeño retraso para que el jugador pueda ver la jugada de la máquina
-
-# Juego principal
-def play_game():
+# Main game loop
+def main():
     running = True
+    turn = HUMAN  # Human goes first
+    game_over = False
+
     while running:
-        player_turn()
-        if check_winner(board):
-            draw_board(screen, board, "¡Felicidades! ¡Has ganado!")
-            running = False
-        else:
-            machine_turn()
-            if check_winner(board):
-                draw_board(screen, board, "La máquina ha ganado.")
+        screen.fill(WHITE)
+        draw_grid()
+        draw_pieces()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 running = False
-        if not SHAPES:
-            draw_board(screen, board, "Empate. No quedan más movimientos.")
-            running = False
 
-# Pantalla de inicio
-if show_start_screen():
-    play_game()
+            if not game_over and turn == HUMAN and event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                row, col = y // CELL_SIZE, x // CELL_SIZE
 
-pygame.quit()
+                if not board[row][col]:  # If the cell is empty
+                    for shape in SHAPES:
+                        if pieces[HUMAN][shape] > 0 and is_valid_move(row, col, shape, HUMAN):
+                            place_piece(row, col, shape, HUMAN)
+                            if check_win(HUMAN):
+                                print("Human Wins!")
+                                game_over = True
+                            turn = AI
+                            break
+
+        if not game_over and turn == AI:
+            ai_move()
+            if check_win(AI):
+                print("AI Wins!")
+                game_over = True
+            turn = HUMAN
+
+        pygame.display.flip()
+
+    pygame.quit()
+
+# Run the game
+if __name__ == "__main__":
+    main()
