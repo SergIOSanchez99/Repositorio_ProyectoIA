@@ -18,7 +18,12 @@ def es_movimiento_valido(tablero, fila, columna, pieza):
     if tablero[fila][columna] != '':
         return False
     
-    # Verificar cuadrante
+    # Verificar fila y columna (no puede haber una pieza del mismo tipo en la misma fila o columna)
+    for i in range(4):
+        if tablero[fila][i].lower() == pieza.lower() or tablero[i][columna].lower() == pieza.lower():
+            return False
+    
+    # Verificar cuadrante (no puede haber una pieza del mismo tipo en el mismo cuadrante)
     inicio_fila, inicio_columna = 2 * (fila // 2), 2 * (columna // 2)
     for i in range(2):
         for j in range(2):
@@ -33,18 +38,21 @@ def verificar_ganador_cuadrante(tablero, inicio_fila, inicio_columna):
     for i in range(2):
         for j in range(2):
             pieza = tablero[inicio_fila + i][inicio_columna + j]
-            if pieza == '':
+            if pieza == '':  # Si hay casillas vacías, no hay ganador en este cuadrante
                 return False
             piezas.add(pieza.lower())
-    return len(piezas) == 4
+    return len(piezas) == 4  # Ganador si hay 4 piezas distintas
 
 # Función para verificar si hay un ganador general
 def verificar_ganador(tablero):
     # Verificar filas y columnas
     for i in range(4):
-        if len(set(tablero[i])) == 4 and '' not in tablero[i]:
+        # Verificar fila
+        if len(set([celda.lower() for celda in tablero[i] if celda])) == 4 and '' not in tablero[i]:
             return True
-        if len(set([tablero[j][i] for j in range(4)])) == 4 and '' not in [tablero[j][i] for j in range(4)]:
+        # Verificar columna
+        columna = [tablero[j][i] for j in range(4)]
+        if len(set([celda.lower() for celda in columna if celda])) == 4 and '' not in columna:
             return True
 
     # Verificar cada cuadrante
@@ -59,9 +67,13 @@ def verificar_ganador(tablero):
 def turno_jugador():
     while True:
         mostrar_tablero(tablero)
-        fila = int(input("Ingresa la fila (0-3): "))
-        columna = int(input("Ingresa la columna (0-3): "))
-        pieza = input("Elige una pieza (A, B, C, D): ").upper()
+        try:
+            fila = int(input("Ingresa la fila (0-3): "))
+            columna = int(input("Ingresa la columna (0-3): "))
+            pieza = input("Elige una pieza (A, B, C, D): ").upper()
+        except ValueError:
+            print("Entrada inválida, por favor ingresa valores correctos.")
+            continue
         
         if pieza in piezas_usuario and es_movimiento_valido(tablero, fila, columna, pieza):
             tablero[fila][columna] = pieza
@@ -83,6 +95,13 @@ def turno_maquina():
             piezas_maquina.remove(pieza)
             break
 
+# Función para verificar si hay empate
+def verificar_empate():
+    for fila in tablero:
+        if '' in fila:  # Si hay al menos una celda vacía, no hay empate
+            return False
+    return True
+
 # Juego principal
 def jugar():
     while True:
@@ -98,7 +117,7 @@ def jugar():
             mostrar_tablero(tablero)
             break
         
-        if not piezas_usuario and not piezas_maquina:
+        if verificar_empate():
             print("Empate. No quedan más movimientos.")
             mostrar_tablero(tablero)
             break
