@@ -3,9 +3,9 @@ import random
 # Inicializar el tablero vacío (4x4)
 tablero = [['' for _ in range(4)] for _ in range(4)]
 
-# Piezas disponibles para el jugador y la máquina
-piezas_usuario = ['A', 'B', 'C', 'D']
-piezas_maquina = ['a', 'b', 'c', 'd']
+# Piezas disponibles para el jugador y la máquina (duplicadas)
+piezas_usuario = ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D']
+piezas_maquina = ['a', 'a', 'b', 'b', 'c', 'c', 'd', 'd']
 
 # Función para mostrar el tablero
 def mostrar_tablero(tablero):
@@ -94,15 +94,18 @@ def jugar():
         turno_jugador()
         if verificar_ganador(tablero):
             print("¡Felicidades! ¡Has ganado!")
+            mostrar_tablero(tablero)
             break
         
         turno_maquina()
         if verificar_ganador(tablero):
             print("La máquina ha ganado.")
+            mostrar_tablero(tablero)
             break
         
         if not piezas_usuario and not piezas_maquina:
             print("Empate. No quedan más movimientos.")
+            mostrar_tablero(tablero)
             break
 
 jugar()
