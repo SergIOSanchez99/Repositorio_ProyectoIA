@@ -109,17 +109,20 @@ def jugar():
         if verificar_ganador(tablero):
             print("¡Felicidades! ¡Has ganado!")
             mostrar_tablero(tablero)
+            print("Gracias por jugar.")
             break
         
         turno_maquina()
         if verificar_ganador(tablero):
             print("La máquina ha ganado.")
             mostrar_tablero(tablero)
+            print("Gracias por jugar.")
             break
         
         if verificar_empate():
             print("Empate. No quedan más movimientos.")
             mostrar_tablero(tablero)
+            print("Gracias por jugar.")
             break
 
 #Funcion jugar()
