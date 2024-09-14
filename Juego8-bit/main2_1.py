@@ -3,9 +3,9 @@ import random
 # Inicializar el tablero vacío (4x4)
 tablero = [['' for _ in range(4)] for _ in range(4)]
 
-# Piezas disponibles para el jugador y la máquina
-piezas_usuario = ['A', 'B', 'C', 'D']
-piezas_maquina = ['a', 'b', 'c', 'd']
+# Piezas disponibles para el jugador y la máquina (duplicadas)
+piezas_usuario = ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D']
+piezas_maquina = ['a', 'a', 'b', 'b', 'c', 'c', 'd', 'd']
 
 # Función para mostrar el tablero
 def mostrar_tablero(tablero):
@@ -17,11 +17,6 @@ def es_movimiento_valido(tablero, fila, columna, pieza):
     # Verifica si el lugar está vacío
     if tablero[fila][columna] != '':
         return False
-    
-    # Verifica si la pieza ya está en la misma fila, columna o cuadrante
-    for i in range(4):
-        if tablero[fila][i].lower() == pieza.lower() or tablero[i][columna].lower() == pieza.lower():
-            return False
     
     # Verificar cuadrante
     inicio_fila, inicio_columna = 2 * (fila // 2), 2 * (columna // 2)
@@ -94,15 +89,18 @@ def jugar():
         turno_jugador()
         if verificar_ganador(tablero):
             print("¡Felicidades! ¡Has ganado!")
+            mostrar_tablero(tablero)
             break
         
         turno_maquina()
         if verificar_ganador(tablero):
             print("La máquina ha ganado.")
+            mostrar_tablero(tablero)
             break
         
         if not piezas_usuario and not piezas_maquina:
             print("Empate. No quedan más movimientos.")
+            mostrar_tablero(tablero)
             break
 
 jugar()
