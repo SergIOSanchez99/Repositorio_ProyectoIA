@@ -122,4 +122,6 @@ def jugar():
             mostrar_tablero(tablero)
             break
 
+#Funcion jugar()
 jugar()
+
