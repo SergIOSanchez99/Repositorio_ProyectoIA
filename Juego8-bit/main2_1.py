@@ -3,7 +3,11 @@ import random
 # Inicializar el tablero vacío (4x4)
 tablero = [['' for _ in range(4)] for _ in range(4)]
 
-# Piezas disponibles para el jugador y la máquina (duplicadas)
+# Piezas disponibles para el jugador y la máquina (duplicadas)# A, a = circulo 
+# B, b = rombo
+# C, b = cuadrado
+# D, d = triángulo
+
 piezas_usuario = ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D']
 piezas_maquina = ['a', 'a', 'b', 'b', 'c', 'c', 'd', 'd']
 
