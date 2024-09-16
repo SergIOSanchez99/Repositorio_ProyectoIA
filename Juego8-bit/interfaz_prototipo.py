@@ -24,7 +24,7 @@ AI = 2
 
 # Setup the display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Quantik')
+pygame.display.set_caption('GEOMETRIC-4')
 
 # Board Data Structure
 board = [[None for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
