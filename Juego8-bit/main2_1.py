@@ -3,9 +3,10 @@ import random
 # Inicializar el tablero vacío (4x4)
 tablero = [['' for _ in range(4)] for _ in range(4)]
 
-# Piezas disponibles para el jugador y la máquina (duplicadas)# A, a = circulo 
+# Piezas disponibles para el jugador y la máquina (duplicadas)
+# A, a = círculo
 # B, b = rombo
-# C, b = cuadrado
+# C, c = cuadrado
 # D, d = triángulo
 
 piezas_usuario = ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D']
@@ -21,20 +22,39 @@ def es_movimiento_valido(tablero, fila, columna, pieza):
     # Verifica si el lugar está vacío
     if tablero[fila][columna] != '':
         return False
-    
-    # Verificar fila y columna (no puede haber una pieza del mismo tipo en la misma fila o columna)
+
+    # Identificar si la pieza pertenece al jugador o la máquina
+    es_usuario = pieza.isupper()
+
+    # Verificar fila y columna
     for i in range(4):
-        if tablero[fila][i].lower() == pieza.lower() or tablero[i][columna].lower() == pieza.lower():
-            return False
-    
-    # Verificar cuadrante (no puede haber una pieza del mismo tipo en el mismo cuadrante)
+        # Si hay una pieza del mismo tipo del oponente en la fila o columna, no puede colocar la pieza
+        if es_usuario:
+            # Si encuentra la versión minúscula de la pieza en la fila o columna
+            if tablero[fila][i] == pieza.lower() or tablero[i][columna] == pieza.lower():
+                return False
+        else:
+            # Si encuentra la versión mayúscula de la pieza en la fila o columna
+            if tablero[fila][i] == pieza.upper() or tablero[i][columna] == pieza.upper():
+                return False
+
+    # Verificar cuadrante (2x2)
     inicio_fila, inicio_columna = 2 * (fila // 2), 2 * (columna // 2)
     for i in range(2):
         for j in range(2):
-            if tablero[inicio_fila + i][inicio_columna + j].lower() == pieza.lower():
-                return False
-    
+            celda = tablero[inicio_fila + i][inicio_columna + j]
+            if es_usuario:
+                # Si encuentra la versión minúscula de la pieza en el cuadrante
+                if celda == pieza.lower():
+                    return False
+            else:
+                # Si encuentra la versión mayúscula de la pieza en el cuadrante
+                if celda == pieza.upper():
+                    return False
+
+    # Si pasa todas las verificaciones, el movimiento es válido
     return True
+
 
 # Función para verificar si hay un ganador en un cuadrante
 def verificar_ganador_cuadrante(tablero, inicio_fila, inicio_columna):
@@ -129,6 +149,5 @@ def jugar():
             print("Gracias por jugar.")
             break
 
-#Funcion jugar()
+# Iniciar el juego
 jugar()
-
