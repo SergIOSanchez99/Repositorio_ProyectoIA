@@ -5,9 +5,11 @@ import random
 pygame.init()
 
 # Constants
-SCREEN_WIDTH, SCREEN_HEIGHT = 600, 600
+BOARD_SIZE = 600  # Set fixed board size to 600x600
+SCREEN_WIDTH = BOARD_SIZE
+SCREEN_HEIGHT = BOARD_SIZE + 100  # Allow extra space for pieces below
 GRID_SIZE = 4
-CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
+CELL_SIZE = BOARD_SIZE // GRID_SIZE  # Cell size is based on board size, not screen size
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -33,11 +35,14 @@ pieces = {
     AI: {'sphere': 2, 'cube': 2, 'cylinder': 2, 'cone': 2}
 }
 
+# Selected piece for the human player
+selected_piece = None
+
 # Draw the grid
 def draw_grid():
     for x in range(1, GRID_SIZE):
-        pygame.draw.line(screen, BLACK, (x * CELL_SIZE, 0), (x * CELL_SIZE, SCREEN_HEIGHT), 2)
-        pygame.draw.line(screen, BLACK, (0, x * CELL_SIZE), (SCREEN_WIDTH, x * CELL_SIZE), 2)
+        pygame.draw.line(screen, BLACK, (x * CELL_SIZE, 0), (x * CELL_SIZE, BOARD_SIZE), 2)
+        pygame.draw.line(screen, BLACK, (0, x * CELL_SIZE), (BOARD_SIZE, x * CELL_SIZE), 2)
 
 # Draw pieces on the board
 def draw_pieces():
@@ -57,20 +62,50 @@ def draw_pieces():
                                                        (col * CELL_SIZE + CELL_SIZE // 4, row * CELL_SIZE + CELL_SIZE // 2),
                                                        (col * CELL_SIZE + 3 * CELL_SIZE // 4, row * CELL_SIZE + CELL_SIZE // 2)])
 
-# Check if a shape is already placed in the row, column, or 2x2 region
+# Draw the available pieces for the human player to choose
+def draw_available_pieces():
+    x_offset = 10
+    y_offset = BOARD_SIZE + 20  # Position just below the board
+
+    clickable_areas = {}  # Store clickable areas for remaining pieces
+
+    for shape in SHAPES:
+        if pieces[HUMAN][shape] > 0:  # Only draw if there are pieces available
+            if shape == 'sphere':
+                pygame.draw.circle(screen, RED, (x_offset + 30, y_offset), 20)
+                clickable_areas['sphere'] = pygame.Rect(x_offset, y_offset - 20, 60, 40)
+            elif shape == 'cube':
+                pygame.draw.rect(screen, RED, (x_offset + 10, y_offset - 20, 40, 40))
+                clickable_areas['cube'] = pygame.Rect(x_offset + 10, y_offset - 20, 40, 40)
+            elif shape == 'cylinder':
+                pygame.draw.rect(screen, RED, (x_offset + 20, y_offset - 20, 20, 40))
+                clickable_areas['cylinder'] = pygame.Rect(x_offset + 20, y_offset - 20, 20, 40)
+            elif shape == 'cone':
+                pygame.draw.polygon(screen, RED, [(x_offset + 30, y_offset - 30),
+                                                  (x_offset + 10, y_offset + 20),
+                                                  (x_offset + 50, y_offset + 20)])
+                clickable_areas['cone'] = pygame.Rect(x_offset + 10, y_offset - 30, 40, 50)
+            
+            x_offset += 70
+
+    return clickable_areas
+
+# Check if a shape is already placed by the opponent in the row, column, or 2x2 region
 def is_valid_move(row, col, shape, player):
+    opponent = AI if player == HUMAN else HUMAN  # Determine the opponent
+    
     # Check row and column
     for i in range(GRID_SIZE):
-        if board[row][i] and board[row][i][1] == shape:
+        if board[row][i] and board[row][i][0] == opponent and board[row][i][1] == shape:
             return False
-        if board[i][col] and board[i][col][1] == shape:
+        if board[i][col] and board[i][col][0] == opponent and board[i][col][1] == shape:
             return False
 
     # Check 2x2 region
     region_row, region_col = row // 2 * 2, col // 2 * 2
     for i in range(region_row, region_row + 2):
         for j in range(region_col, region_col + 2):
-            if board[i][j] and board[i][j][1] == shape:
+            if board[i][j] and board[i][j][0] == opponent and board[i][j][1] == shape:
                 return False
 
     return True
@@ -118,44 +153,56 @@ def check_win(player):
 
 # Main game loop
 def main():
+    global selected_piece  # Ensure selected_piece is global
+
     running = True
     turn = HUMAN  # Human goes first
-    game_over = False
 
     while running:
         screen.fill(WHITE)
         draw_grid()
         draw_pieces()
 
+        # Draw available pieces for human player
+        if turn == HUMAN and selected_piece is None:
+            draw_available_pieces()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-            if not game_over and turn == HUMAN and event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
-                row, col = y // CELL_SIZE, x // CELL_SIZE
-
-                if not board[row][col]:  # If the cell is empty
-                    for shape in SHAPES:
-                        if pieces[HUMAN][shape] > 0 and is_valid_move(row, col, shape, HUMAN):
-                            place_piece(row, col, shape, HUMAN)
+            if turn == HUMAN:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = pygame.mouse.get_pos()  # Get the mouse click position
+                    if selected_piece is None:
+                        # Check if the player clicked on an available piece
+                        clickable_areas = draw_available_pieces()  # Get the clickable areas dynamically
+                        for shape, rect in clickable_areas.items():
+                            if rect.collidepoint(x, y):
+                                selected_piece = shape
+                                break
+                    else:
+                        # After selecting the piece, check where to place it
+                        row, col = y // CELL_SIZE, x // CELL_SIZE  # Convert mouse click to board grid
+                        if row < GRID_SIZE and col < GRID_SIZE and not board[row][col] and is_valid_move(row, col, selected_piece, HUMAN):
+                            place_piece(row, col, selected_piece, HUMAN)
                             if check_win(HUMAN):
                                 print("Human Wins!")
-                                game_over = True
-                            turn = AI
-                            break
+                                running = False
+                            selected_piece = None  # Reset selection
+                            turn = AI  # AI's turn
 
-        if not game_over and turn == AI:
+
+        if turn == AI:
             ai_move()
             if check_win(AI):
                 print("AI Wins!")
-                game_over = True
+                running = False
             turn = HUMAN
 
         pygame.display.flip()
 
     pygame.quit()
 
-# Run the game
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
