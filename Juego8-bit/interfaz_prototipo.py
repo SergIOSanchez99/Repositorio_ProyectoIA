@@ -114,12 +114,43 @@ def colocar_pieza(fila, col, forma, jugador):
     tablero[fila][col] = (jugador, forma)
     piezas[jugador][forma] -= 1
 
-# Movimiento de la IA (un movimiento válido al azar)
+
+# Movimiento de la IA (mejor decisión posible)
 def movimiento_ia():
+    # Buscar un movimiento ganador para la IA
+    for fila in range(4):
+        for col in range(4):
+            if not tablero[fila][col]:  # Espacio vacío
+                for forma in FORMAS:
+                    if piezas[IA][forma] > 0 and jugada_valida(fila, col, forma, IA):
+                        # Simular colocar la pieza para revisar si ganaría
+                        tablero[fila][col] = (IA, forma)
+                        if revisar_victoria(IA):
+                            return  # Hacer el movimiento ganador
+                        # Deshacer la jugada simulada
+                        tablero[fila][col] = None
+
+    # Bloquear al humano si está cerca de ganar
+    for fila in range(4):
+        for col in range(4):
+            if not tablero[fila][col]:  # Espacio vacío
+                for forma in FORMAS:
+                    if piezas[IA][forma] > 0 and jugada_valida(fila, col, forma, HUMANO):
+                        # Simular la jugada para ver si el humano ganaría
+                        tablero[fila][col] = (HUMANO, forma)
+                        if revisar_victoria(HUMANO):
+                            # Bloquear el movimiento colocando la pieza de la IA
+                            tablero[fila][col] = (IA, forma)
+                            piezas[IA][forma] -= 1
+                            return
+                        # Deshacer la jugada simulada
+                        tablero[fila][col] = None
+
+    # Si no hay movimientos críticos, realizar un movimiento válido al azar
     movimientos_validos = []
     for fila in range(4):
         for col in range(4):
-            if not tablero[fila][col]:  # espacio vacío
+            if not tablero[fila][col]:  # Espacio vacío
                 for forma in FORMAS:
                     if piezas[IA][forma] > 0 and jugada_valida(fila, col, forma, IA):
                         movimientos_validos.append((fila, col, forma))
@@ -127,6 +158,7 @@ def movimiento_ia():
     if movimientos_validos:
         movimiento = random.choice(movimientos_validos)
         colocar_pieza(*movimiento, IA)
+
 
 # Revisar si hay una victoria
 def revisar_victoria(jugador):
