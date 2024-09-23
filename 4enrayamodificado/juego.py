@@ -37,16 +37,20 @@ pieza_seleccionada = None
 
 def menu_principal():
     font = pygame.font.SysFont(None, 48)
+    title_font = pygame.font.SysFont(None, 64)  # Use a larger font for the title
 
     texto_humano = font.render("Humano empieza", True, NEGRO)
     texto_ia = font.render("IA empieza", True, NEGRO)
+    title_text = title_font.render("Geometric-4", True, NEGRO)  # Render the title text
 
     rect_humano = texto_humano.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2 - 50))
     rect_ia = texto_ia.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2 + 50))
+    title_rect = title_text.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2 - 150))  # Position the title above the options
 
     while True:
         pantalla.fill(BLANCO)
         
+        pantalla.blit(title_text, title_rect)  # Blit the title text to the screen
         pygame.draw.rect(pantalla, ROJO, rect_humano.inflate(20, 10))
         pygame.draw.rect(pantalla, AZUL, rect_ia.inflate(20, 10))
 
@@ -408,7 +412,13 @@ def main():
                             if not tablero[fila][columna] and es_movimiento_valido(fila, columna, pieza_seleccionada, HUMANO):
                                 colocar_pieza(fila, columna, pieza_seleccionada, HUMANO)
                                 if comprobar_ganador():
-                                    print("Gana humano!")
+                                    font = pygame.font.SysFont(None, 36)
+                                    texto_ganador = font.render("Gana humano!", True, NEGRO)
+                                    texto_rect = texto_ganador.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA - 25))
+                                    pantalla.blit(texto_ganador, texto_rect)
+                                    dibujar_piezas()
+                                    pygame.display.flip()
+                                    pygame.time.wait(2000)  # Wait for 2 seconds before quitting
                                     running = False
                                     break
                                 pieza_seleccionada = None  # Reiniciar seleccion
@@ -423,16 +433,18 @@ def main():
         if turno == IA and running:
             movimiento_ia()
             if comprobar_ganador():
-                print("Gana la IA!")
+                font = pygame.font.SysFont(None, 36)
+                texto_ganador = font.render("Gana la IA!", True, NEGRO)
+                texto_rect = texto_ganador.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA - 25))
+                pantalla.blit(texto_ganador, texto_rect)
+                dibujar_piezas()
+                pygame.display.flip()
+                pygame.time.wait(2000)  # Wait for 2 seconds before quitting
                 running = False
             turno = HUMANO
 
         pygame.display.flip()
 
-    dibujar_piezas()
-    pygame.display.flip()
-
-    pygame.time.wait(3000)
     pygame.quit()
 
 if __name__ == '__main__':
