@@ -1,9 +1,6 @@
 import pygame
 import random
 
-# Inicializando pygame
-pygame.init()
-
 # Constantes
 TAMANO_TABLERO = 600  # Tamaño de tablero fijo
 ANCHO_PANTALLA = TAMANO_TABLERO
@@ -37,6 +34,40 @@ piezas = {
 
 # Pieza seleccionada del jugador humano
 pieza_seleccionada = None
+
+def menu_principal():
+    font = pygame.font.SysFont(None, 48)
+
+    texto_humano = font.render("Humano empieza", True, NEGRO)
+    texto_ia = font.render("IA empieza", True, NEGRO)
+
+    rect_humano = texto_humano.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2 - 50))
+    rect_ia = texto_ia.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2 + 50))
+
+    while True:
+        pantalla.fill(BLANCO)
+        
+        pygame.draw.rect(pantalla, ROJO, rect_humano.inflate(20, 10))
+        pygame.draw.rect(pantalla, AZUL, rect_ia.inflate(20, 10))
+
+        pantalla.blit(texto_humano, rect_humano)
+        pantalla.blit(texto_ia, rect_ia)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+
+                if rect_humano.collidepoint(x, y):
+                    return HUMANO
+
+                if rect_ia.collidepoint(x, y):
+                    return IA
 
 # Dibujar la cuadrícula
 def dibujar_cuadricula():
@@ -123,8 +154,151 @@ def colocar_pieza(fila, columna, figura, jugador):
     tablero[fila][columna] = (jugador, figura)
     piezas[jugador][figura] -= 1
 
+def evaluar_tablero():
+
+    """
+    Evaluar el tablero bajo los siguientes criterios:
+    1. Control de espacios (+10 por pieza).
+    2. Bloquear potencial victoria del oponente (+15 for blocking).
+    3. Completar filas, columnas, o cuadrantes con 3 figuras distintas (+20).
+    """
+
+    puntaje = 0
+
+    #Criterio 1. Control de espacios
+    for fila in range(TAMANO_CUADRICULA):
+        for columna in range(TAMANO_CUADRICULA):
+
+            if tablero[fila][columna] is not None:
+                jugador, figura = tablero[fila][columna]
+
+                if jugador == IA:
+                    puntaje += 10
+                elif jugador == HUMANO:
+                    puntaje -= 10
+
+    #Criterio 2. Bloquear potencial victoria del oponente
+    for fila in range(TAMANO_CUADRICULA):
+        figuras_humano = set()
+        for columna in range(TAMANO_CUADRICULA):
+            if tablero[fila][columna] is not None and tablero[fila][columna][0] == HUMANO:
+                figuras_humano.add(tablero[fila][columna][1])
+
+        if len(figuras_humano) == 3:
+            puntaje += 15
+
+    #Criterio 3. Completar 4 figuras distintas en filas y columnas
+    for fila in range(TAMANO_CUADRICULA):
+        figuras_fila = set()
+        figuras_columna = set()
+        for columna in range(TAMANO_CUADRICULA):
+            if tablero[fila][columna] is not None:
+                _, figura = tablero[fila][columna]
+                figuras_fila.add(figura)
+            if tablero[columna][fila] is not None:
+                _, figura = tablero[columna][fila]
+                figuras_columna.add(figura)
+
+        if len(figuras_fila) == 3:
+            puntaje += 20
+        if len(figuras_columna) == 3:
+            puntaje += 20
+
+    #Criterio 3.1. Completar 4 figuras distintas en cuadrantes
+    for i in range(0, TAMANO_CUADRICULA, 2):
+        for j in range(0, TAMANO_CUADRICULA, 2):
+            figuras_region = set()
+            for fila in range(i, i + 2):
+                for columna in range(j, j + 2):
+                    if tablero[fila][columna] is not None:
+                        _, figura = tablero[fila][columna]
+                        figuras_region.add(figura)
+
+            if len(figuras_region) == 3:
+                puntaje += 20
+
+    return puntaje
+
+
+def encontrar_mejor_movimiento():
+    """
+    La IA evalúa los movimientos posibles y elige el mejor basándose en evaluación heurística.
+    Evita colocar la tercera pieza donde ya haya dos figuras distintas.
+    """
+    mejor_puntaje = float('-inf')
+    mejores_movimientos = []
+    movimientos_riesgosos = []
+
+    # Función auxiliar para contar distintas formas en una fila, columna o región, independientemente del jugador
+    def contar_figuras_distintas(fila, columna, figura_tipo):
+        contador = 0
+        figuras_distintas = set()
+
+        #Verificar fila
+        for c in range(TAMANO_CUADRICULA):
+            if tablero[fila][c] is not None:
+                figuras_distintas.add(tablero[fila][c][1])
+        if len(figuras_distintas) == figura_tipo:
+            contador += 1
+
+        #Verificar columna
+        figuras_distintas.clear()
+        for f in range(TAMANO_CUADRICULA):
+            if tablero[f][columna] is not None:
+                figuras_distintas.add(tablero[f][columna][1])
+        if len(figuras_distintas) == figura_tipo:
+            contador += 1
+
+        #Verificar región(cuadrante)
+        figuras_distintas.clear()
+        region_fila_inicio = (fila // 2) * 2
+        region_columna_inicio = (columna // 2) * 2
+        for f in range(region_fila_inicio, region_fila_inicio + 2):
+            for c in range(region_columna_inicio, region_columna_inicio + 2):
+                if tablero[f][c] is not None:
+                    figuras_distintas.add(tablero[f][c][1])
+        if len(figuras_distintas) == figura_tipo:
+            contador += 1
+
+        return contador
+    
+    # Iterar sobre todas las posiciones posibles del tablero
+    for fila in range(TAMANO_CUADRICULA):
+        for columna in range(TAMANO_CUADRICULA):
+            if tablero[fila][columna] is None: #Espacio vacío
+                #Iterar sobre todas las piezas disponibles para la IA
+                for figura in FIGURAS:
+                    # Simular el movimiento
+                    if piezas[IA][figura] > 0 and es_movimiento_valido(fila, columna, figura, IA):
+                        tablero[fila][columna] = (figura, IA) # Colocar la pieza temporalmente
+                        puntaje = evaluar_tablero() # Evaluar el estado actual del tablero
+                        tablero[fila][columna] = None # Quitar la pieza
+
+                        # Verificar si el movimiento ocasionaría oportunidad de ganar al oponente
+                        riesgo_humano = contar_figuras_distintas(fila, columna, 2)
+                        if riesgo_humano > 0:
+                            movimientos_riesgosos.append((fila, columna, figura))
+                        else:
+                            if puntaje > mejor_puntaje:
+                                mejor_puntaje = puntaje
+                                mejores_movimientos = [(fila, columna, figura)]
+                            elif puntaje == mejor_puntaje:
+                                mejores_movimientos.append((fila, columna, figura))
+
+    # Si hay más de un mejor movimiento no riesgoso, retornar uno aleatorio
+    if mejores_movimientos:
+        return random.choice(mejores_movimientos)
+    
+    # Si no hay movimientos no riesgosos, bloquear al oponente
+    if movimientos_riesgosos:
+        return random.choice(movimientos_riesgosos)
+
+    return None
+
 # Movimiento de la IA (movimiento basico valido aleatorio)
 def movimiento_ia():
+    '''
+    # Dificultad fácil (movimiento aleatorio)
     movimientos_validos = []
     for row in range(TAMANO_CUADRICULA):
         for col in range(TAMANO_CUADRICULA):
@@ -136,6 +310,13 @@ def movimiento_ia():
     if movimientos_validos:
         movimiento = random.choice(movimientos_validos)
         colocar_pieza(*movimiento, IA)
+    '''
+    mejor_movimiento = encontrar_mejor_movimiento()
+    if mejor_movimiento:
+        fila, columna, figura = mejor_movimiento 
+        colocar_pieza(fila, columna, figura, IA)
+
+        print(f"La IA ha colocado un {figura} en la fila {fila}, columna {columna}")
 
 # Comprobar si hay un movimiento ganador (4 figuras distintas en una fila, columna o cuadrante)
 def comprobar_ganador():
@@ -177,8 +358,11 @@ def comprobar_ganador():
 def main():
     global pieza_seleccionada 
 
+    pygame.init()
+
+    turno = menu_principal()  # Jugador humano tiene el primer turno
+
     running = True
-    turno = HUMANO  # Jugador humano tiene el primer turno
 
     while running:
         pantalla.fill(BLANCO)
@@ -245,6 +429,10 @@ def main():
 
         pygame.display.flip()
 
+    dibujar_piezas()
+    pygame.display.flip()
+
+    pygame.time.wait(3000)
     pygame.quit()
 
 if __name__ == '__main__':
