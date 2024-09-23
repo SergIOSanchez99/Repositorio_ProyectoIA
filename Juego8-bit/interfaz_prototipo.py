@@ -37,6 +37,57 @@ piezas = {
 # Pieza seleccionada por el jugador humano
 pieza_seleccionada = None
 
+# Mostrar la introducción con botones
+def mostrar_intro():
+    pantalla.fill(BLANCO)
+    fuente = pygame.font.Font(None, 74)
+    texto_juego = fuente.render('GEOMETRIC-4', True, NEGRO)
+    pantalla.blit(texto_juego, (ANCHO_PANTALLA // 2 - texto_juego.get_width() // 2, ALTO_PANTALLA // 2 - 50))
+
+    fuente = pygame.font.Font(None, 36)
+    texto_instrucciones = fuente.render('¿Quién empieza?', True, NEGRO)
+    pantalla.blit(texto_instrucciones, (ANCHO_PANTALLA // 2 - texto_instrucciones.get_width() // 2, ALTO_PANTALLA // 2 + 20))
+
+    # Botones
+    boton_humano = pygame.Rect(ANCHO_PANTALLA // 2 - 100, ALTO_PANTALLA // 2 + 70, 200, 50)
+    boton_ia = pygame.Rect(ANCHO_PANTALLA // 2 - 100, ALTO_PANTALLA // 2 + 130, 200, 50)
+
+    pygame.draw.rect(pantalla, ROJO, boton_humano)
+    pygame.draw.rect(pantalla, AZUL, boton_ia)
+
+    texto_humano = fuente.render('Humano', True, BLANCO)
+    texto_ia = fuente.render('IA', True, BLANCO)
+    pantalla.blit(texto_humano, (ANCHO_PANTALLA // 2 - texto_humano.get_width() // 2, ALTO_PANTALLA // 2 + 80))
+    pantalla.blit(texto_ia, (ANCHO_PANTALLA // 2 - texto_ia.get_width() // 2, ALTO_PANTALLA // 2 + 140))
+
+    pygame.display.flip()
+
+    # Esperar entrada del usuario
+    while True:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                return
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
+                if evento.button == 1:  # Clic izquierdo
+                    if boton_humano.collidepoint(evento.pos):
+                        return HUMANO  # El humano empieza
+                    elif boton_ia.collidepoint(evento.pos):
+                        return IA  # La IA empieza
+
+# Mostrar el resultado
+def mostrar_resultado(gano_humano):
+    pantalla.fill(BLANCO)
+    fuente = pygame.font.Font(None, 74)
+    if gano_humano:
+        texto_ganador = fuente.render('¡Ganaste!', True, ROJO)
+    else:
+        texto_ganador = fuente.render('¡La IA ganó!', True, AZUL)
+    pantalla.blit(texto_ganador, (ANCHO_PANTALLA // 2 - texto_ganador.get_width() // 2, ALTO_PANTALLA // 2 - 50))
+
+    pygame.display.flip()
+    pygame.time.wait(2000)  # Esperar 2 segundos antes de cerrar
+
 # Dibujar la cuadrícula
 def dibujar_cuadricula():
     for x in range(1, 4):
@@ -46,7 +97,7 @@ def dibujar_cuadricula():
 # Dibujar las piezas en el tablero
 def dibujar_piezas():
     for fila in range(4):
-        for col in range(4):
+        for col in range(4): 
             if tablero[fila][col]:
                 jugador, forma = tablero[fila][col]
                 color = ROJO if jugador == HUMANO else AZUL
@@ -114,162 +165,109 @@ def colocar_pieza(fila, col, forma, jugador):
     tablero[fila][col] = (jugador, forma)
     piezas[jugador][forma] -= 1
 
-
-# Movimiento de la IA (mejor decisión posible)
+# Movimiento de la IA (algoritmo goloso)
 def movimiento_ia():
-    # Buscar un movimiento ganador para la IA
-    for fila in range(4):
-        for col in range(4):
-            if not tablero[fila][col]:  # Espacio vacío
-                for forma in FORMAS:
-                    if piezas[IA][forma] > 0 and jugada_valida(fila, col, forma, IA):
-                        # Simular colocar la pieza para revisar si ganaría
-                        tablero[fila][col] = (IA, forma)
-                        if revisar_victoria(IA):
-                            return  # Hacer el movimiento ganador
-                        # Deshacer la jugada simulada
-                        tablero[fila][col] = None
+    formas_disponibles = [forma for forma in FORMAS if piezas[IA][forma] > 0]
+    if not formas_disponibles:
+        return  # No hay piezas disponibles
 
-    # Bloquear al humano si está cerca de ganar
-    for fila in range(4):
-        for col in range(4):
-            if not tablero[fila][col]:  # Espacio vacío
-                for forma in FORMAS:
-                    if piezas[IA][forma] > 0 and jugada_valida(fila, col, forma, HUMANO):
-                        # Simular la jugada para ver si el humano ganaría
-                        tablero[fila][col] = (HUMANO, forma)
-                        if revisar_victoria(HUMANO):
-                            # Bloquear el movimiento colocando la pieza de la IA
-                            tablero[fila][col] = (IA, forma)
-                            piezas[IA][forma] -= 1
-                            return
-                        # Deshacer la jugada simulada
-                        tablero[fila][col] = None
+    mejor_jugada = None
+    mejor_puntaje = -1
 
-    # Si no hay movimientos críticos, realizar un movimiento válido al azar
-    movimientos_validos = []
-    for fila in range(4):
-        for col in range(4):
-            if not tablero[fila][col]:  # Espacio vacío
-                for forma in FORMAS:
-                    if piezas[IA][forma] > 0 and jugada_valida(fila, col, forma, IA):
-                        movimientos_validos.append((fila, col, forma))
+    # Evaluar todas las jugadas posibles
+    for forma in formas_disponibles:
+        for fila in range(4):
+            for col in range(4):
+                if not tablero[fila][col] and jugada_valida(fila, col, forma, IA):
+                    colocar_pieza(fila, col, forma, IA)
+                    if revisar_victoria(IA):
+                        return  # Hacer el movimiento ganador
+                    puntaje = evaluar_jugada(fila, col, forma)
+                    if puntaje > mejor_puntaje:
+                        mejor_puntaje = puntaje
+                        mejor_jugada = (fila, col, forma)
+                    tablero[fila][col] = None  # Deshacer la jugada simulada
 
-    if movimientos_validos:
-        movimiento = random.choice(movimientos_validos)
-        colocar_pieza(*movimiento, IA)
+    # Si se encuentra la mejor jugada, colócala
+    if mejor_jugada:
+        fila, col, forma = mejor_jugada
+        colocar_pieza(fila, col, forma, IA)
 
+# Evaluar el puntaje de una jugada
+def evaluar_jugada(fila, col, forma):
+    # Puedes personalizar la lógica de evaluación aquí
+    return random.randint(1, 10)  # Ejemplo simple
 
-# Revisar si hay una victoria
+# Revisar condiciones de victoria
 def revisar_victoria(jugador):
-    # Revisar filas y columnas
+    # Verificar filas y columnas
     for i in range(4):
-        if len(set([tablero[i][j][1] for j in range(4) if tablero[i][j] and tablero[i][j][0] == jugador])) == 4:
+        if len(set(tablero[i][j][1] for j in range(4) if tablero[i][j] and tablero[i][j][0] == jugador)) == 4:
             return True
-        if len(set([tablero[j][i][1] for j in range(4) if tablero[j][i] and tablero[j][i][0] == jugador])) == 4:
+        if len(set(tablero[j][i][1] for j in range(4) if tablero[j][i] and tablero[j][i][0] == jugador)) == 4:
             return True
 
-    # Revisar regiones 2x2
-    for fila in range(0, 4, 2):
-        for col in range(0, 4, 2):
-            formas = set()
-            for i in range(fila, fila + 2):
-                for j in range(col, col + 2):
+    # Verificar cuadrantes 2x2
+    for fila_region in range(0, 4, 2):
+        for col_region in range(0, 4, 2):
+            formas_en_cuadrante = set()
+            for i in range(fila_region, fila_region + 2):
+                for j in range(col_region, col_region + 2):
                     if tablero[i][j] and tablero[i][j][0] == jugador:
-                        formas.add(tablero[i][j][1])
-            if len(formas) == 4:
+                        formas_en_cuadrante.add(tablero[i][j][1])
+            if len(formas_en_cuadrante) == 4:
                 return True
 
     return False
 
-# Pantalla de inicio para seleccionar el turno
-def pantalla_inicio():
-    pantalla.fill(BLANCO)
-    fuente = pygame.font.SysFont(None, 36)
-    texto_humano = fuente.render("Humano Comienza", True, NEGRO)
-    texto_ia = fuente.render("IA Comienza", True, NEGRO)
-    pantalla.blit(texto_humano, (ANCHO_PANTALLA // 4 - texto_humano.get_width() // 2, ALTO_PANTALLA // 2))
-    pantalla.blit(texto_ia, (3 * ANCHO_PANTALLA // 4 - texto_ia.get_width() // 2, ALTO_PANTALLA // 2))
-    boton_humano = pygame.Rect(ANCHO_PANTALLA // 4 - 100, ALTO_PANTALLA // 2 - 20, 200, 50)
-    boton_ia = pygame.Rect(3 * ANCHO_PANTALLA // 4 - 100, ALTO_PANTALLA // 2 - 20, 200, 50)
-    pygame.draw.rect(pantalla, NEGRO, boton_humano, 2)
-    pygame.draw.rect(pantalla, NEGRO, boton_ia, 2)
-    return boton_humano, boton_ia
-
-# Mostrar mensaje de victoria en pantalla
-def mostrar_ganador(jugador):
-    pantalla.fill(BLANCO)
-    fuente = pygame.font.SysFont(None, 72)
-    mensaje = "¡Humano Gana!" if jugador == HUMANO else "¡IA Gana!"
-    texto = fuente.render(mensaje, True, ROJO if jugador == HUMANO else AZUL)
-    pantalla.blit(texto, (ANCHO_PANTALLA // 2 - texto.get_width() // 2, ALTO_PANTALLA // 2 - texto.get_height() // 2))
-    pygame.display.flip()
-    pygame.time.wait(3000)  # Pausa de 3 segundos antes de salir
-
 # Bucle principal del juego
 def main():
-    global pieza_seleccionada  # Asegurarse de que sea global
+    global pieza_seleccionada
+    reloj = pygame.time.Clock()
+    ejecutando = True
 
-    corriendo = True
-    turno = None  # No hay turno asignado hasta que el jugador elija
+    # Mostrar la introducción y decidir quién empieza
+    quien_empieza = mostrar_intro()
 
-    while corriendo:
-        if turno is None:
-            boton_humano, boton_ia = pantalla_inicio()
+    while ejecutando:
+        pantalla.fill(BLANCO)
+        dibujar_cuadricula()
+        dibujar_piezas()
+        areas_clicables = dibujar_piezas_disponibles()
 
-            for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    corriendo = False
-                elif evento.type == pygame.MOUSEBUTTONDOWN:
-                    x, y = pygame.mouse.get_pos()
-                    if boton_humano.collidepoint(x, y):
-                        turno = HUMANO
-                    elif boton_ia.collidepoint(x, y):
-                        turno = IA
-                        movimiento_ia()  # La IA realiza su primer movimiento
-
-        else:
-            pantalla.fill(BLANCO)
-            dibujar_cuadricula()
-            dibujar_piezas()
-
-            # Dibujar piezas disponibles para el humano
-            if turno == HUMANO and pieza_seleccionada is None:
-                dibujar_piezas_disponibles()
-
-            for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    corriendo = False
-
-                if turno == HUMANO:
-                    if evento.type == pygame.MOUSEBUTTONDOWN:
-                        x, y = pygame.mouse.get_pos()
-                        if pieza_seleccionada is None:
-                            # Verificar si el jugador seleccionó una pieza disponible
-                            areas_clicables = dibujar_piezas_disponibles()
-                            for forma, rect in areas_clicables.items():
-                                if rect.collidepoint(x, y):
-                                    pieza_seleccionada = forma
-                                    break
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                ejecutando = False
+            elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:  # Clic izquierdo
+                x, y = evento.pos
+                if y < TAMAÑO_TABLERO:  # Clic dentro del tablero
+                    fila, col = y // TAMAÑO_CELDA, x // TAMAÑO_CELDA
+                    if pieza_seleccionada and not tablero[fila][col] and jugada_valida(fila, col, pieza_seleccionada, HUMANO):
+                        colocar_pieza(fila, col, pieza_seleccionada, HUMANO)
+                        if revisar_victoria(HUMANO):
+                            mostrar_resultado(True)
+                            ejecutando = False  # Detener el juego o implementar reinicio
                         else:
-                            # Colocar la pieza seleccionada
-                            fila, col = y // TAMAÑO_CELDA, x // TAMAÑO_CELDA
-                            if fila < 4 and col < 4 and not tablero[fila][col] and jugada_valida(fila, col, pieza_seleccionada, HUMANO):
-                                colocar_pieza(fila, col, pieza_seleccionada, HUMANO)
-                                if revisar_victoria(HUMANO):
-                                    mostrar_ganador(HUMANO)
-                                    corriendo = False
-                                pieza_seleccionada = None
-                                turno = IA
+                            movimiento_ia()  # Movimiento de la IA
+                            if revisar_victoria(IA):
+                                mostrar_resultado(False)
+                                ejecutando = False  # Detener el juego o implementar reinicio
+                        pieza_seleccionada = None  # Reiniciar la selección de la pieza
+                else:  # Clic en las piezas disponibles
+                    for forma, area in areas_clicables.items():
+                        if area.collidepoint(x, y):
+                            pieza_seleccionada = forma
+                            break
 
-            if turno == IA:
-                movimiento_ia()
+            # Si la IA comienza, hacer su movimiento al principio del ciclo
+            if quien_empieza == IA and pieza_seleccionada is None:
+                movimiento_ia()  # Movimiento de la IA
                 if revisar_victoria(IA):
-                    mostrar_ganador(IA)
-                    corriendo = False
-                turno = HUMANO
+                    mostrar_resultado(False)
+                    ejecutando = False  # Detener el juego
 
         pygame.display.flip()
+        reloj.tick(30)
 
     pygame.quit()
 
