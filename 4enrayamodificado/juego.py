@@ -21,7 +21,7 @@ IA = 2
 
 # Configuración de pantalla
 pantalla = pygame.display.set_mode((ANCHO_PANTALLA, ALTO_PANTALLA))
-pygame.display.set_caption('Quantik')
+pygame.display.set_caption('Geometric-4')
 
 # Estructura de datos del tablero
 tablero = [[None for _ in range(TAMANO_CUADRICULA)] for _ in range(TAMANO_CUADRICULA)]
@@ -78,6 +78,14 @@ def dibujar_cuadricula():
     for x in range(1, TAMANO_CUADRICULA):
         pygame.draw.line(pantalla, NEGRO, (x * TAMANO_CELDA, 0), (x * TAMANO_CELDA, TAMANO_TABLERO), 2)
         pygame.draw.line(pantalla, NEGRO, (0, x * TAMANO_CELDA), (TAMANO_TABLERO, x * TAMANO_CELDA), 2)
+
+def dibujar_celdas_no_validas(pieza_seleccionada):
+    for i in range(TAMANO_CUADRICULA):
+        for j in range(TAMANO_CUADRICULA):
+            if not es_movimiento_valido(i, j, pieza_seleccionada, HUMANO):
+                # Dibujar un "X" o colorear la celda
+                pygame.draw.line(pantalla, ROJO, (j * TAMANO_CELDA, i * TAMANO_CELDA), ((j + 1) * TAMANO_CELDA, (i + 1) * TAMANO_CELDA))
+                pygame.draw.line(pantalla, ROJO, ((j + 1) * TAMANO_CELDA, i * TAMANO_CELDA), (j * TAMANO_CELDA, (i + 1) * TAMANO_CELDA))
 
 # Dibujar las piezas en el tablero
 def dibujar_piezas():
@@ -163,7 +171,7 @@ def evaluar_tablero():
     """
     Evaluar el tablero bajo los siguientes criterios:
     1. Control de espacios (+10 por pieza).
-    2. Bloquear potencial victoria del oponente (+15 for blocking).
+    2. Bloquear potencial victoria del oponente (+15 por bloqueo).
     3. Completar filas, columnas, o cuadrantes con 3 figuras distintas (+20).
     """
 
@@ -372,6 +380,8 @@ def main():
         pantalla.fill(BLANCO)
         dibujar_cuadricula()
         dibujar_piezas()
+        if pieza_seleccionada is not None:
+            dibujar_celdas_no_validas(pieza_seleccionada)
 
         # Dibujar piezas disponibles para el jugador humano
         if turno == HUMANO and pieza_seleccionada is None:
