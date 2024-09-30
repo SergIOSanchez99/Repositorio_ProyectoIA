@@ -294,36 +294,6 @@ def evaluar_linea(fila, columna, delta_fila, delta_columna, jugador):
     return 0
 
 
-def encontrar_mejor_movimiento():
-    """
-    La IA evalúa los movimientos posibles y elige el mejor basándose en un algoritmo voraz.
-    Ahora considera la elección de la pieza como parte de la estrategia.
-    """
-    mejor_puntaje = float('-inf')
-    mejor_movimiento = None
-
-    for fila in range(TAMANO_CUADRICULA):
-        for columna in range(TAMANO_CUADRICULA):
-            if tablero[fila][columna] is None:  # Espacio vacío
-                figuras_faltantes = figuras_faltantes_en_linea(fila, columna)
-                for figura in FIGURAS:  # Cambiado de figuras_faltantes a FIGURAS
-                    if piezas[IA][figura] > 0 and es_movimiento_valido(fila, columna, figura, IA):
-                        # Simular el movimiento
-                        tablero[fila][columna] = (IA, figura)
-                        puntaje = evaluar_tablero(IA)
-                        
-                        # Bonus por usar una pieza estratégica
-                        if figura in figuras_faltantes:
-                            puntaje += 20
-                        
-                        tablero[fila][columna] = None  # Deshacer el movimiento
-
-                        if puntaje > mejor_puntaje:
-                            mejor_puntaje = puntaje
-                            mejor_movimiento = (fila, columna, figura)
-
-    return mejor_movimiento
-
 def figuras_faltantes_en_linea(fila, columna):
     """
     Determina qué figuras faltan en la fila, columna y cuadrante de la posición dada.
