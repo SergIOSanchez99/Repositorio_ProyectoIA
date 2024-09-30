@@ -449,8 +449,6 @@ def main():
 
     turno = menu_principal()  # Mostrar el menú principal
     menu_dificultad()  # Mostrar el menú de selección de dificultad antes de iniciar el juego
-
-    turno = menu_principal()  # Jugador humano tiene el primer turno
     
     running = True
 
