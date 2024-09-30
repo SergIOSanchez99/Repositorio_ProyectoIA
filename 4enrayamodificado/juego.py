@@ -72,6 +72,55 @@ def menu_principal():
 
                 if rect_ia.collidepoint(x, y):
                     return IA
+                
+def menu_dificultad():
+    global dificultad_seleccionada
+
+    font = pygame.font.SysFont(None, 48)
+    title_font = pygame.font.SysFont(None, 64)
+
+    texto_facil = font.render("Fácil", True, NEGRO)
+    texto_medio = font.render("Medio", True, NEGRO)
+    texto_dificil = font.render("Difícil", True, NEGRO)
+    title_text = title_font.render("Seleccionar Dificultad", True, NEGRO)
+
+    rect_facil = texto_facil.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2 - 50))
+    rect_medio = texto_medio.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2))
+    rect_dificil = texto_dificil.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2 + 50))
+    title_rect = title_text.get_rect(center=(ANCHO_PANTALLA // 2, ALTO_PANTALLA // 2 - 150))
+
+    while True:
+        pantalla.fill(BLANCO)
+        pantalla.blit(title_text, title_rect)
+        pygame.draw.rect(pantalla, AZUL, rect_facil.inflate(20, 10))
+        pygame.draw.rect(pantalla, AZUL, rect_medio.inflate(20, 10))
+        pygame.draw.rect(pantalla, AZUL, rect_dificil.inflate(20, 10))
+
+        pantalla.blit(texto_facil, rect_facil)
+        pantalla.blit(texto_medio, rect_medio)
+        pantalla.blit(texto_dificil, rect_dificil)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+
+                if rect_facil.collidepoint(x, y):
+                    dificultad_seleccionada = 'facil'
+                    return
+                elif rect_medio.collidepoint(x, y):
+                    dificultad_seleccionada = 'medio'
+                    return
+                elif rect_dificil.collidepoint(x, y):
+                    dificultad_seleccionada = 'dificil'
+                    return
+        
+        
 
 # Dibujar la cuadrícula
 def dibujar_cuadricula():
@@ -308,27 +357,27 @@ def encontrar_mejor_movimiento():
     return None
 
 # Movimiento de la IA (movimiento basico valido aleatorio)
-def movimiento_ia():
-    '''
-    # Dificultad fácil (movimiento aleatorio)
-    movimientos_validos = []
-    for row in range(TAMANO_CUADRICULA):
-        for col in range(TAMANO_CUADRICULA):
-            if not tablero[row][col]:  # espacio vacio
-                for shape in FIGURAS:
-                    if piezas[IA][shape] > 0 and es_movimiento_valido(row, col, shape, IA):
-                        movimientos_validos.append((row, col, shape))
+def movimiento_ia(dificultad):
+    if(dificultad=='facil'):
+        # Dificultad fácil (movimiento aleatorio)
+        movimientos_validos = []
+        for row in range(TAMANO_CUADRICULA):
+            for col in range(TAMANO_CUADRICULA):
+                if not tablero[row][col]:  # espacio vacio
+                    for shape in FIGURAS:
+                        if piezas[IA][shape] > 0 and es_movimiento_valido(row, col, shape, IA):
+                            movimientos_validos.append((row, col, shape))
+        if movimientos_validos:
+            movimiento = random.choice(movimientos_validos)
+            colocar_pieza(*movimiento, IA)
 
-    if movimientos_validos:
-        movimiento = random.choice(movimientos_validos)
-        colocar_pieza(*movimiento, IA)
-    '''
-    mejor_movimiento = encontrar_mejor_movimiento()
-    if mejor_movimiento:
-        fila, columna, figura = mejor_movimiento 
-        colocar_pieza(fila, columna, figura, IA)
+    elif(dificultad=='medio'):
+        mejor_movimiento = encontrar_mejor_movimiento()
+        if mejor_movimiento:
+            fila, columna, figura = mejor_movimiento 
+            colocar_pieza(fila, columna, figura, IA)
 
-        print(f"La IA ha colocado un {figura} en la fila {fila}, columna {columna}")
+            print(f"La IA ha colocado un {figura} en la fila {fila}, columna {columna}")
 
 # Comprobar si hay un movimiento ganador (4 figuras distintas en una fila, columna o cuadrante)
 def comprobar_ganador():
@@ -372,7 +421,8 @@ def main():
 
     pygame.init()
 
-    turno = menu_principal()  # Jugador humano tiene el primer turno
+    turno = menu_principal()
+    menu_dificultad()  # Jugador humano tiene el primer turno
 
     running = True
 
@@ -441,7 +491,7 @@ def main():
             boton_cancelar_rect = dibujar_boton_cancelar()
 
         if turno == IA and running:
-            movimiento_ia()
+            movimiento_ia(dificultad_seleccionada)
             if comprobar_ganador():
                 font = pygame.font.SysFont(None, 36)
                 texto_ganador = font.render("Gana la IA!", True, NEGRO)
