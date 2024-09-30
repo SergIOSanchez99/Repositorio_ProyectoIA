@@ -215,150 +215,167 @@ def colocar_pieza(fila, columna, figura, jugador):
     tablero[fila][columna] = (jugador, figura)
     piezas[jugador][figura] -= 1
 
-def evaluar_tablero():
-
+def evaluar_tablero(jugador):
     """
-    Evaluar el tablero bajo los siguientes criterios:
-    1. Control de espacios (+10 por pieza).
-    2. Bloquear potencial victoria del oponente (+15 por bloqueo).
-    3. Completar filas, columnas, o cuadrantes con 3 figuras distintas (+20).
+    Evaluar el tablero para el jugador especificado.
     """
-
     puntaje = 0
+    oponente = HUMANO if jugador == IA else IA
 
-    #Criterio 1. Control de espacios
+    # Criterio 1: Control de espacios
     for fila in range(TAMANO_CUADRICULA):
         for columna in range(TAMANO_CUADRICULA):
-
             if tablero[fila][columna] is not None:
-                jugador, figura = tablero[fila][columna]
-
-                if jugador == IA:
+                pieza_jugador, _ = tablero[fila][columna]
+                if pieza_jugador == jugador:
                     puntaje += 10
-                elif jugador == HUMANO:
+                else:
                     puntaje -= 10
 
-    #Criterio 2. Bloquear potencial victoria del oponente
+    # Criterio 2: Potencial victoria o bloqueo
     for fila in range(TAMANO_CUADRICULA):
-        figuras_humano = set()
-        for columna in range(TAMANO_CUADRICULA):
-            if tablero[fila][columna] is not None and tablero[fila][columna][0] == HUMANO:
-                figuras_humano.add(tablero[fila][columna][1])
-
-        if len(figuras_humano) == 3:
-            puntaje += 15
-
-    #Criterio 3. Completar 4 figuras distintas en filas y columnas
-    for fila in range(TAMANO_CUADRICULA):
-        figuras_fila = set()
-        figuras_columna = set()
-        for columna in range(TAMANO_CUADRICULA):
-            if tablero[fila][columna] is not None:
-                _, figura = tablero[fila][columna]
-                figuras_fila.add(figura)
-            if tablero[columna][fila] is not None:
-                _, figura = tablero[columna][fila]
-                figuras_columna.add(figura)
-
-        if len(figuras_fila) == 3:
-            puntaje += 20
-        if len(figuras_columna) == 3:
-            puntaje += 20
-
-    #Criterio 3.1. Completar 4 figuras distintas en cuadrantes
+        puntaje += evaluar_linea(fila, 0, 0, 1, jugador)  # Fila
+    for columna in range(TAMANO_CUADRICULA):
+        puntaje += evaluar_linea(0, columna, 1, 0, jugador)  # Columna
+    
+    # Evaluar cuadrantes
     for i in range(0, TAMANO_CUADRICULA, 2):
         for j in range(0, TAMANO_CUADRICULA, 2):
-            figuras_region = set()
-            for fila in range(i, i + 2):
-                for columna in range(j, j + 2):
-                    if tablero[fila][columna] is not None:
-                        _, figura = tablero[fila][columna]
-                        figuras_region.add(figura)
-
-            if len(figuras_region) == 3:
-                puntaje += 20
+            puntaje += evaluar_cuadrante(i, j, jugador)
 
     return puntaje
+
+def evaluar_cuadrante(fila_inicio, columna_inicio, jugador):
+    """
+    Evalúa un cuadrante 2x2 para el jugador especificado.
+    """
+    figuras_jugador = set()
+    figuras_oponente = set()
+    for i in range(2):
+        for j in range(2):
+            if tablero[fila_inicio + i][columna_inicio + j] is not None:
+                pieza_jugador, figura = tablero[fila_inicio + i][columna_inicio + j]
+                if pieza_jugador == jugador:
+                    figuras_jugador.add(figura)
+                else:
+                    figuras_oponente.add(figura)
+    
+    if len(figuras_jugador) == 3 and len(figuras_oponente) == 0:
+        return 50  # Potencial victoria
+    elif len(figuras_oponente) == 3 and len(figuras_jugador) == 0:
+        return 40  # Bloqueo de victoria del oponente
+    elif len(figuras_jugador) == 3:
+        return 30  # Tres figuras distintas
+    return 0  # Aseguramos que siempre se devuelva un valor numérico
+    
+    
+def evaluar_linea(fila, columna, delta_fila, delta_columna, jugador):
+    """
+    Evalúa una línea (fila o columna) para el jugador especificado.
+    """
+    figuras_jugador = set()
+    figuras_oponente = set()
+    for _ in range(TAMANO_CUADRICULA):
+        if tablero[fila][columna] is not None:
+            pieza_jugador, figura = tablero[fila][columna]
+            if pieza_jugador == jugador:
+                figuras_jugador.add(figura)
+            else:
+                figuras_oponente.add(figura)
+        fila += delta_fila
+        columna += delta_columna
+    
+    if len(figuras_jugador) == 3 and len(figuras_oponente) == 0:
+        return 50  # Potencial victoria
+    elif len(figuras_oponente) == 3 and len(figuras_jugador) == 0:
+        return 40  # Bloqueo de victoria del oponente
+    elif len(figuras_jugador) == 3:
+        return 30  # Tres figuras distintas
+    return 0
 
 
 def encontrar_mejor_movimiento():
     """
-    La IA evalúa los movimientos posibles y elige el mejor basándose en evaluación heurística.
-    Evita colocar la tercera pieza donde ya haya dos figuras distintas.
+    La IA evalúa los movimientos posibles y elige el mejor basándose en un algoritmo voraz.
+    Ahora considera la elección de la pieza como parte de la estrategia.
     """
     mejor_puntaje = float('-inf')
-    mejores_movimientos = []
-    movimientos_riesgosos = []
+    mejor_movimiento = None
 
-    # Función auxiliar para contar distintas formas en una fila, columna o región, independientemente del jugador
-    def contar_figuras_distintas(fila, columna, figura_tipo):
-        contador = 0
-        figuras_distintas = set()
-
-        #Verificar fila
-        for c in range(TAMANO_CUADRICULA):
-            if tablero[fila][c] is not None:
-                figuras_distintas.add(tablero[fila][c][1])
-        if len(figuras_distintas) == figura_tipo:
-            contador += 1
-
-        #Verificar columna
-        figuras_distintas.clear()
-        for f in range(TAMANO_CUADRICULA):
-            if tablero[f][columna] is not None:
-                figuras_distintas.add(tablero[f][columna][1])
-        if len(figuras_distintas) == figura_tipo:
-            contador += 1
-
-        #Verificar región(cuadrante)
-        figuras_distintas.clear()
-        region_fila_inicio = (fila // 2) * 2
-        region_columna_inicio = (columna // 2) * 2
-        for f in range(region_fila_inicio, region_fila_inicio + 2):
-            for c in range(region_columna_inicio, region_columna_inicio + 2):
-                if tablero[f][c] is not None:
-                    figuras_distintas.add(tablero[f][c][1])
-        if len(figuras_distintas) == figura_tipo:
-            contador += 1
-
-        return contador
-    
-    # Iterar sobre todas las posiciones posibles del tablero
     for fila in range(TAMANO_CUADRICULA):
         for columna in range(TAMANO_CUADRICULA):
-            if tablero[fila][columna] is None: #Espacio vacío
-                #Iterar sobre todas las piezas disponibles para la IA
-                for figura in FIGURAS:
-                    # Simular el movimiento
+            if tablero[fila][columna] is None:  # Espacio vacío
+                figuras_faltantes = figuras_faltantes_en_linea(fila, columna)
+                for figura in FIGURAS:  # Cambiado de figuras_faltantes a FIGURAS
                     if piezas[IA][figura] > 0 and es_movimiento_valido(fila, columna, figura, IA):
-                        tablero[fila][columna] = (figura, IA) # Colocar la pieza temporalmente
-                        puntaje = evaluar_tablero() # Evaluar el estado actual del tablero
-                        tablero[fila][columna] = None # Quitar la pieza
+                        # Simular el movimiento
+                        tablero[fila][columna] = (IA, figura)
+                        puntaje = evaluar_tablero(IA)
+                        
+                        # Bonus por usar una pieza estratégica
+                        if figura in figuras_faltantes:
+                            puntaje += 20
+                        
+                        tablero[fila][columna] = None  # Deshacer el movimiento
 
-                        # Verificar si el movimiento ocasionaría oportunidad de ganar al oponente
-                        riesgo_humano = contar_figuras_distintas(fila, columna, 2)
-                        if riesgo_humano > 0:
-                            movimientos_riesgosos.append((fila, columna, figura))
-                        else:
-                            if puntaje > mejor_puntaje:
-                                mejor_puntaje = puntaje
-                                mejores_movimientos = [(fila, columna, figura)]
-                            elif puntaje == mejor_puntaje:
-                                mejores_movimientos.append((fila, columna, figura))
+                        if puntaje > mejor_puntaje:
+                            mejor_puntaje = puntaje
+                            mejor_movimiento = (fila, columna, figura)
 
-    # Si hay más de un mejor movimiento no riesgoso, retornar uno aleatorio
-    if mejores_movimientos:
-        return random.choice(mejores_movimientos)
+    return mejor_movimiento
+
+def figuras_faltantes_en_linea(fila, columna):
+    """
+    Determina qué figuras faltan en la fila, columna y cuadrante de la posición dada.
+    """
+    figuras_faltantes = set(FIGURAS)
     
-    # Si no hay movimientos no riesgosos, bloquear al oponente
-    if movimientos_riesgosos:
-        return random.choice(movimientos_riesgosos)
+    # Verificar fila
+    for c in range(TAMANO_CUADRICULA):
+        if tablero[fila][c] is not None:
+            figuras_faltantes.discard(tablero[fila][c][1])
+    
+    # Verificar columna
+    for f in range(TAMANO_CUADRICULA):
+        if tablero[f][columna] is not None:
+            figuras_faltantes.discard(tablero[f][columna][1])
+    
+    # Verificar cuadrante
+    cuadrante_fila = (fila // 2) * 2
+    cuadrante_columna = (columna // 2) * 2
+    for f in range(cuadrante_fila, cuadrante_fila + 2):
+        for c in range(cuadrante_columna, cuadrante_columna + 2):
+            if tablero[f][c] is not None:
+                figuras_faltantes.discard(tablero[f][c][1])
+    
+    return figuras_faltantes
 
-    return None
 
-# Movimiento de la IA (movimiento basico valido aleatorio)
+def encontrar_mejor_movimiento():
+    """
+    La IA evalúa los movimientos posibles y elige el mejor basándose en un algoritmo voraz.
+    """
+    mejor_puntaje = float('-inf')
+    mejor_movimiento = None
+
+    for fila in range(TAMANO_CUADRICULA):
+        for columna in range(TAMANO_CUADRICULA):
+            if tablero[fila][columna] is None:  # Espacio vacío
+                for figura in FIGURAS:
+                    if piezas[IA][figura] > 0 and es_movimiento_valido(fila, columna, figura, IA):
+                        # Simular el movimiento
+                        tablero[fila][columna] = (IA, figura)
+                        puntaje = evaluar_tablero(IA)
+                        tablero[fila][columna] = None  # Deshacer el movimiento
+
+                        if puntaje > mejor_puntaje:
+                            mejor_puntaje = puntaje
+                            mejor_movimiento = (fila, columna, figura)
+
+    return mejor_movimiento
+
 def movimiento_ia(dificultad):
-    if(dificultad=='facil'):
+    if dificultad == 'facil':
         # Dificultad fácil (movimiento aleatorio)
         movimientos_validos = []
         for row in range(TAMANO_CUADRICULA):
@@ -371,15 +388,14 @@ def movimiento_ia(dificultad):
             movimiento = random.choice(movimientos_validos)
             colocar_pieza(*movimiento, IA)
 
-    elif(dificultad=='medio'):
+    elif dificultad == 'medio':
         mejor_movimiento = encontrar_mejor_movimiento()
         if mejor_movimiento:
             fila, columna, figura = mejor_movimiento 
             colocar_pieza(fila, columna, figura, IA)
-
             print(f"La IA ha colocado un {figura} en la fila {fila}, columna {columna}")
 
-# Comprobar si hay un movimiento ganador (4 figuras distintas en una fila, columna o cuadrante)
+
 def comprobar_ganador():
     # Check rows
     for fila in range(TAMANO_CUADRICULA):
