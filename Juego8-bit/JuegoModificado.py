@@ -309,7 +309,7 @@ def figuras_faltantes_en_linea(fila, columna):
     for f in range(TAMANO_CUADRICULA):
         if tablero[f][columna] is not None:
             figuras_faltantes.discard(tablero[f][columna][1])
-    
+            
     # Verificar cuadrante
     cuadrante_fila = (fila // 2) * 2
     cuadrante_columna = (columna // 2) * 2
