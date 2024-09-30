@@ -182,6 +182,7 @@ def dibujar_piezas_disponibles():
 
     return areas_seleccionables
 
+# Botón para cancelar la selección actual y volver a seleccionar otra pieza
 def dibujar_boton_cancelar():
     font = pygame.font.SysFont(None, 36)
     texto_cancelar = font.render("Cancelar", True, NEGRO)
