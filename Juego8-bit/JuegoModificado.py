@@ -380,6 +380,7 @@ def movimiento_ia(dificultad):
 
             print(f"La IA ha colocado un {figura} en la fila {fila}, columna {columna}")
 
+
 # Comprobar si hay un movimiento ganador (4 figuras distintas en una fila, columna o cuadrante)
 def comprobar_ganador():
     # Check rows

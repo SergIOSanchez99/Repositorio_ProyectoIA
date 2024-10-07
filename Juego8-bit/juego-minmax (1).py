@@ -223,6 +223,7 @@ def seleccionar_turno():
                 elif boton_ia.collidepoint(event.pos):
                     esperando_seleccion = False
                     return "IA"
+                
 
 def main():
     global ganador, empate

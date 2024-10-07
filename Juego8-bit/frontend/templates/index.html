@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geometric-4 Online</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='../statics/style.css') }}"
+    />
+  </head>
+  <body>
+    <h1>Geometric-4</h1>
+    <div id="configuracion">
+      <h2>Configuración inicial</h2>
+      <label for="jugador_inicial">¿Quién comienza?</label>
+      <select id="jugador_inicial">
+        <option value="HUMANO">Humano</option>
+        <option value="IA">IA</option>
+      </select>
+      <br />
+      <label for="dificultad">Dificultad</label>
+      <select id="dificultad">
+        <option value="facil">Fácil</option>
+        <option value="medio">Medio</option>
+        <option value="dificil">Difícil</option>
+      </select>
+      <br />
+      <button id="comenzar">Comenzar Juego</button>
+    </div>
+    <div id="tablero" style="display: none">
+      <h2>Selecciona una figura:</h2>
+      <div id="figuras">
+        <button class="figura" data-figura="Círculo">&#9711; Círculo</button>
+        <button class="figura" data-figura="Cuadrado">&#9632; Cuadrado</button>
+        <button class="figura" data-figura="Rectángulo">
+          &#9644; Rectángulo
+        </button>
+        <button class="figura" data-figura="Triángulo">
+          &#9651; Triángulo
+        </button>
+      </div>
+      <div id="grid-container">
+        <!-- El tablero se dibujará aquí -->
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='game.js') }}"></script>
+  </body>
+</html>
